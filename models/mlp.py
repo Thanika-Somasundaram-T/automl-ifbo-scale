@@ -9,7 +9,7 @@ class MLP2(nn.Module):
     
     def __init__(self, hidden_dim=256):
         super().__init__()
-        self.fc1 = nn.Linear(28 * 28, hidden_dim)
+        self.fc1 = nn.Linear(3 * 32 * 32, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, 10)
         
     def forward(self, x):
@@ -25,7 +25,7 @@ class MLP4(nn.Module):
     
     def __init__(self, hidden_dim=256):
         super().__init__()
-        self.fc1 = nn.Linear(28 * 28, hidden_dim)
+        self.fc1 = nn.Linear(3 * 32 * 32, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.fc3 = nn.Linear(hidden_dim, hidden_dim)
         self.fc4 = nn.Linear(hidden_dim, 10)

@@ -18,6 +18,38 @@ def get_device():
         print("Using CPU.")
     return device
     
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
+
+def get_cifar_loaders(batch_size=128, normalise=True):
+    """
+    Return train and test dataloaders for CIFAR-10.
+    
+    Args:
+        batch_size (int): batch size
+        normalise (bool): whether to normalize
+        
+    Returns:
+        train_loader, test_loader
+    """
+    transform_list = [transforms.ToTensor()]
+    
+    if normalise:
+        # CIFAR-10 mean/std
+        transform_list.append(transforms.Normalize(
+            mean=[0.4914, 0.4822, 0.4465],
+            std=[0.2470, 0.2435, 0.2616]
+        ))
+    
+    transform = transforms.Compose(transform_list)
+    
+    train_dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+    test_dataset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+    
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    
+    return train_loader, test_loader
 
 
 def get_mnist_loaders(batch_size=128, normalise=True):
@@ -39,6 +71,8 @@ def get_mnist_loaders(batch_size=128, normalise=True):
     
     train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
     test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+    
+    
     
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)

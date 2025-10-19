@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from models.mlp import MLP2, MLP4
-from utils import get_device, get_mnist_loaders, load_context_curves, normalize_hyperparameters, save_context_curves
+from utils import get_cifar_loaders, get_device, get_mnist_loaders, load_context_curves, normalize_hyperparameters, save_context_curves
 from ifbo.surrogate import FTPFN
 from ifbo import Curve
 import os
@@ -30,7 +30,7 @@ def train(
     model.to(device)
 
     # Load MNIST
-    train_loader, test_loader = get_mnist_loaders(batch_size=batch_size)
+    train_loader, test_loader = get_cifar_loaders(batch_size=batch_size)
 
     # Loss & optimizer
     criterion = nn.CrossEntropyLoss()
