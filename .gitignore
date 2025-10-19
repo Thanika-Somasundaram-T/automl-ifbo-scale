@@ -1,0 +1,24 @@
+# PyTorch / Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python virtual environments
+env/
+venv/
+.ipynb_checkpoints/
+
+# Logs and results
+/results/
+/runs/
+/neps_results/
+/data/
+
+# Model checkpoints
+*.pt
+*.pth
+.model
+
+# Misc
+# .DS_Store
