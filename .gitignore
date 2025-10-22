@@ -10,14 +10,16 @@ venv/
 .ipynb_checkpoints/
 
 # Logs and results
-/results/
-/runs/
-/neps_results/
+/results*
+/runs*
+/neps_results*
 /data/
+
 
 # Model checkpoints
 *.pt
 *.pth
+*.pt*
 .model
 
 # Misc

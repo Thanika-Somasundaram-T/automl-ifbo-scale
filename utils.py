@@ -117,4 +117,14 @@ def normalize_hyperparameters(lr, hidden_dim, weight_decay):
     # Clamp to [0,1] just in case
     return torch.tensor([lr_norm, hidden_norm, weight_decay_norm], dtype=torch.float32).clamp(0.0, 1.0)
 
-    
+
+def parse_key(key):
+    """
+    Parse keys like 'lr3e-02_hd128_wd0.001'
+    into floats (lr, hd, wd)
+    """
+    parts = key.split("_")
+    lr = float(parts[0].replace("lr", ""))
+    hd = float(parts[1].replace("hd", ""))
+    wd = float(parts[2].replace("wd", ""))
+    return lr, hd, wd

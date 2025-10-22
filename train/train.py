@@ -8,6 +8,7 @@ from ifbo.surrogate import FTPFN
 from ifbo import Curve
 import os
 from datetime import datetime
+import json
 
 # Global FT-PFN context (shared across runs)
 
@@ -38,7 +39,7 @@ def train(
 
     # TensorBoard setup
     timestamp = datetime.now().strftime("%H%M%S")
-    run_name = f"layer_{num_layers}_lr_{lr:.0e}__full_lr_{lr}_hd_{hidden_dim}_{timestamp}"
+    run_name = f"Full_run_layer_{num_layers}_lr_{lr:.0e}__full_lr_{lr}_hd_{hidden_dim}_Wd_{weight_decay}_{timestamp}"
     writer = SummaryWriter(log_dir=os.path.join(log_dir, run_name))
 
     val_curve = []
@@ -85,11 +86,11 @@ def train(
     hp = normalize_hyperparameters(lr, hidden_dim, weight_decay)
     t = torch.linspace(0, 1, steps=len(val_curve))
     curve = Curve(hyperparameters=hp, t=t, y=torch.tensor(val_curve, dtype=torch.float32))
-    print("curve:::::::::: ", curve)
+    # print("curve:::::::::: ", curve)
 
     # Load existing context if any
     existing_curves = load_context_curves("./context_layer.pt")
-    print("existing curve:::::::::", existing_curves)
+    # print("existing curve:::::::::", existing_curves)
     context_curves_to_save = existing_curves + [curve]  # append new curve
     save_context_curves(context_curves_to_save, path="./context_layer.pt")
 
@@ -111,7 +112,30 @@ def train(
                 writer.add_scalar("val/Accuracy_all", val, i)
                 writer.add_scalar("val/Accuracy_Predicted", val, i)
             writer.close()
-            return 1.0 - predicted_val_acc  # NEPS uses this as the objective
+            best_val_acc = predicted_val_acc  # NEPS uses this as the objective
 
     writer.close()
+    results_path = os.path.join(save_dir, "results_summary.json")
+    key = f"{num_layers}_{use_context}"
+    subkey = f"lr{lr}_hd{hidden_dim}_wd{weight_decay}"
+
+    # Load existing results if file exists
+    if os.path.exists(results_path):
+        with open(results_path, "r") as f:
+            all_results = json.load(f)
+    else:
+        all_results = {}
+
+    # Ensure nested dicts exist
+    if key not in all_results:
+        all_results[key] = {}
+
+    # Store value
+    all_results[key][subkey] = round(best_val_acc, 4)
+
+    # Write back to JSON
+    with open(results_path, "w") as f:
+        json.dump(all_results, f, indent=4)
+
+    print(f"Saved best val_acc = {best_val_acc:.4f} to {results_path}")
     return 1.0 - best_val_acc
