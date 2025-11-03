@@ -16,7 +16,7 @@ def parsey():
     return parser.parse_args()
 
 def main(num_layers):
-    with open("./neps_config_4.yaml", "r") as f:
+    with open("./neps_config_than.yaml", "r") as f:
         neps_config = yaml.safe_load(f)
         
     neps_config["evaluate_pipeline"] = neps_wrapper()

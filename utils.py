@@ -128,3 +128,65 @@ def parse_key(key):
     hd = float(parts[1].replace("hd", ""))
     wd = float(parts[2].replace("wd", ""))
     return lr, hd, wd
+
+
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
+
+def get_fashion_mnist_loaders(batch_size=128, normalise=True):
+    """
+    Return train and test dataloaders for Fashion-MNIST
+    
+    Args:
+        batch_size (int)
+        normalise (bool)
+        
+    Returns:
+        train_loader, test_loader
+    """
+    transform_list = [transforms.ToTensor()]
+    
+    if normalise:
+        transform_list.append(transforms.Normalize((0.2860,), (0.3530,)))  # mean/std for Fashion-MNIST
+    
+    transform = transforms.Compose(transform_list)
+    
+    train_dataset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
+    test_dataset = datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
+    
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    
+    return train_loader, test_loader
+
+
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
+
+def get_svhn_loaders(batch_size=128, normalise=True):
+    """
+    Return train and test dataloaders for SVHN
+    
+    Args:
+        batch_size (int)
+        normalise (bool)
+        
+    Returns:
+        train_loader, test_loader
+    """
+    transform_list = [transforms.ToTensor()]
+    
+    if normalise:
+        # SVHN is color, normalize per channel
+        transform_list.append(transforms.Normalize((0.4377, 0.4438, 0.4728), 
+                                                   (0.1980, 0.2010, 0.1970)))
+    
+    transform = transforms.Compose(transform_list)
+    
+    train_dataset = datasets.SVHN(root='./data', split='train', download=True, transform=transform)
+    test_dataset = datasets.SVHN(root='./data', split='test', download=True, transform=transform)
+    
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    
+    return train_loader, test_loader
