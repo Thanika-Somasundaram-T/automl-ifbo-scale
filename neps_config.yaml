@@ -17,7 +17,7 @@ pipeline_space:
     type: categorical
     choices: ["none", "warmup", "cosine", "cooldown", "warmup_cooldown"]
 
-  epochs: 30
+  epochs: 180
 
   batch_size: 96
 
