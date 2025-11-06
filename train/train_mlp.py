@@ -13,7 +13,7 @@ from sklearn.metrics import roc_auc_score, accuracy_score
 import numpy as np
 
 
-from models.mlp import MLP2
+from models.mlp import MLP4
 from utils import get_device, get_fashion_mnist_loaders
 
 
@@ -36,7 +36,7 @@ def train_mlp(
     os.makedirs(save_dir, exist_ok=True)
 
     # --- Model selection ---
-    model = MLP2(hidden_dim=hidden_dim)
+    model = MLP4(hidden_dim=hidden_dim)
     model.to(device)
 
     train_loader, test_loader = get_fashion_mnist_loaders(batch_size=batch_size)
