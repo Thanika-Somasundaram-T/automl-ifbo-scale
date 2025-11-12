@@ -106,7 +106,7 @@ def normalize_hyperparameters(lr, hidden_dim, weight_decay):
     """
     # Define min/max for each hyperparameter
     lr_min, lr_max = 1e-5, 1e-1
-    hidden_min, hidden_max = 64, 512
+    hidden_min, hidden_max = 16, 256
     wd_min, wd_max = 0.0, 0.1
 
     # Normalize each hyperparameter

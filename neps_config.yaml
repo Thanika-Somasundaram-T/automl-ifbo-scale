@@ -1,13 +1,11 @@
 pipeline_space:
   lr:
     type: categorical
-    choices: [1e-3, 1e-2]
+    choices: [1e-4, 3e-4, 1e-3, 1e-2]
 
   num_layers: 4
 
-  hidden_dim:
-    type: categorical
-    choices: [32, 64, 128]  # width scaling
+  hidden_dim: 64
 
   weight_decay:
     type: categorical
@@ -17,9 +15,10 @@ pipeline_space:
     type: categorical
     choices: ["none", "warmup", "cosine", "cooldown", "warmup_cooldown"]
 
-  epochs: 100
+  epochs: 10
 
   batch_size: 96
+  use_context: true
 
 optimizer: grid_search
-max_evaluations_total: 90
+max_evaluations_total: 60
