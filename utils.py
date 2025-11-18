@@ -99,23 +99,25 @@ def load_context_curves(path="./context_2layer.pt"):
     print(f"Loaded {len(curves)} context curves from {path}")
     return curves
 
-def normalize_hyperparameters(lr, hidden_dim, weight_decay):
+def normalize_hyperparameters(lr, num_layer, hidden_dim, weight_decay):
     """
     Normalize hyperparameters to [0,1] range for FT-PFN.
     Learning rate is normalized in log-scale.
     """
     # Define min/max for each hyperparameter
     lr_min, lr_max = 1e-5, 1e-1
-    hidden_min, hidden_max = 16, 256
+    hidden_min, hidden_max = 16, 512
     wd_min, wd_max = 0.0, 0.1
+    layer_min, layer_max = 2, 10
 
     # Normalize each hyperparameter
     lr_norm = (math.log10(lr) - math.log10(lr_min)) / (math.log10(lr_max) - math.log10(lr_min))
     hidden_norm = (hidden_dim - hidden_min) / (hidden_max - hidden_min)
     weight_decay_norm = (weight_decay - wd_min) / (wd_max - wd_min)
+    layer_norm = (num_layer - layer_min) / (layer_max - num_layer)
 
     # Clamp to [0,1] just in case
-    return torch.tensor([lr_norm, hidden_norm, weight_decay_norm], dtype=torch.float32).clamp(0.0, 1.0)
+    return torch.tensor([lr_norm, layer_norm, hidden_norm, weight_decay_norm], dtype=torch.float32).clamp(0.0, 1.0)
 
 
 def parse_key(key):

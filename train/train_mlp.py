@@ -180,7 +180,7 @@ def train_mlp(
     writer.close()
 
     # --- Save model + curves ---
-    save_name = f"layers{num_layers}_lr{lr}_hd{hidden_dim}_wd{weight_decay}_{lr_schedule}.pt"
+    save_name = f"layer{num_layers}_lr{lr}_hd{hidden_dim}_wd{weight_decay}_{lr_schedule}.pt"
     torch.save(
         {
             "lr": lr,
@@ -207,7 +207,7 @@ def train_mlp(
     else:
         all_results = {}
 
-    key = f"layers{num_layers}_lr{lr}_hd{hidden_dim}_wd{weight_decay}_{lr_schedule}"
+    key = f"layer{num_layers}_lr{lr}_hd{hidden_dim}_wd{weight_decay}_{lr_schedule}"
     all_results[key] = {
         "lr": lr,
         "num_layers": num_layers,

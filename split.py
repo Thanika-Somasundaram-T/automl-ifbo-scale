@@ -2,8 +2,8 @@ import json
 import os
 
 # Paths
-input_path = "./results_f/results_metrics.json"  # existing results
-output_path = "./results_4layer_hd32.json"  # filtered output
+input_path = "./results/results_metrics.json"  # existing results
+output_path = "./results/512.json"  # filtered output
 
 # Load the full results
 if not os.path.exists(input_path):
@@ -15,7 +15,7 @@ with open(input_path, "r") as f:
 # Filter for num_layers=4 and hidden_dim=32
 filtered_results = {}
 for key, run_data in all_results.items():
-    if run_data.get("num_layers") == 4 and run_data.get("hidden_dim") == 32:
+    if run_data.get("num_layers") == 4 and run_data.get("hidden_dim") == 512:
         filtered_results[key] = run_data
 
 # Save filtered results

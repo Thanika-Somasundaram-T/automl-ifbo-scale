@@ -5,20 +5,22 @@ pipeline_space:
 
   num_layers: 4
 
-  hidden_dim: 64
+  hidden_dim:
+    type: categorical
+    choices: [128, 512]
 
   weight_decay:
     type: categorical
     choices: [0.0, 1e-4, 1e-3]
 
-  lr_schedule:
-    type: categorical
-    choices: ["none", "warmup", "cosine", "cooldown", "warmup_cooldown"]
+  lr_schedule: "cosine"
 
-  epochs: 10
+  epochs:
+    type: categorical
+    choices: [10, 15, 30, 45, 50, 70, 90]
 
   batch_size: 96
   use_context: true
 
 optimizer: grid_search
-max_evaluations_total: 60
+max_evaluations_total: 300
