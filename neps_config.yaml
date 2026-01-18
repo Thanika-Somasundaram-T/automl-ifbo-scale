@@ -1,26 +1,30 @@
 pipeline_space:
+  # Learning rates: pick 5 values logarithmically spaced
   lr:
     type: categorical
-    choices: [1e-4, 3e-4, 1e-3, 1e-2]
+    choices: [1e-5, 3e-5, 1e-4, 3e-4, 1e-3]
 
+  # Number of layers fixed
   num_layers: 4
 
+  # Hidden dimensions
   hidden_dim:
     type: categorical
-    choices: [128, 512]
+    choices: [4, 8, 16, 24, 32, 64, 128]
 
+  # Weight decay: 2 choices
   weight_decay:
     type: categorical
-    choices: [0.0, 1e-4, 1e-3]
+    choices: [0.0, 0.01]
 
+  # Learning rate schedule
   lr_schedule: "cosine"
 
-  epochs:
-    type: categorical
-    choices: [10, 15, 30, 45, 50, 70, 90]
-
+  # Training parameters
+  epochs: 150
   batch_size: 96
-  use_context: true
 
 optimizer: grid_search
-max_evaluations_total: 300
+
+# Maximum number of total evaluations (all combinations)
+max_evaluations_total: 70

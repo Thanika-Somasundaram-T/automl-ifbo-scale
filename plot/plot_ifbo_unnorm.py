@@ -3,14 +3,12 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 
-from utils import min_max_normalize, fixed_range_normalize
+from utils import fixed_range_normalize, min_max_normalize
 
 # ---------------------------------------------------
 # Hardcoded observed epochs
 # ---------------------------------------------------
 epochs_observed_list = [10, 15, 30, 45, 50, 70, 90, 150]
-# obs_epoch = 45
-# assert obs_epoch in epochs_observed_list
 
 for obs_epoch in epochs_observed_list:
 
@@ -19,7 +17,7 @@ for obs_epoch in epochs_observed_list:
     # ---------------------------------------------------
     results_dir = "./results"
     pred_dir = "./results"
-    output_dir = "ifbo_plots_par_128"
+    output_dir = "ifbo_plots_par_128_unnorm"
     os.makedirs(output_dir, exist_ok=True)
 
     # ---------------------------------------------------
@@ -65,28 +63,33 @@ for obs_epoch in epochs_observed_list:
         run_data = metrics[run_key]
 
         # ---------------------------------------------------
-        # Full curve
+        # Full raw curve
         # ---------------------------------------------------
-        full_curve = fixed_range_normalize(np.array(run_data.get("val_acc_curve", [])))
+        full_curve_raw = np.array(run_data.get("val_acc_curve", []), dtype=float)
+        if len(full_curve_raw) == 0:
+            continue
 
-        # 👉 Plot full curve in light shade
+        # Normalize full curve for plotting comparison (optional)
+        # full_curve_norm = fixed_range_normalize(full_curve_raw)
+        y_min, y_max = 0.0, 1.0
+
+        # Plot full raw curve (light shade)
         plt.plot(
-            np.arange(1, len(full_curve) + 1),
-            full_curve,
+            np.arange(1, len(full_curve_raw) + 1),
+            full_curve_raw,
             color="black",
-            # alpha=0.15,          # light shade
-            linewidth=2
+            linewidth=2,
         )
 
         # ---------------------------------------------------
-        # Observed curve
+        # Observed curve (raw)
         # ---------------------------------------------------
-        val_obs = full_curve[:obs_epoch]
-        epochs_obs = np.arange(1, len(val_obs)+1)
+        val_obs_raw = full_curve_raw[:obs_epoch]
+        epochs_obs = np.arange(1, len(val_obs_raw) + 1)
 
         plt.plot(
             epochs_obs,
-            val_obs,
+            val_obs_raw,
             color=color,
             linewidth=3,
             label=f"{sched_val}, lr={lr_val}, wd={wd_val}, L={layers_val}, hd={hd_val} (obs {obs_epoch})"
@@ -112,20 +115,26 @@ for obs_epoch in epochs_observed_list:
 
         pred = pred_file_data[key]
 
-        mean_pred = np.array(pred["point"])
-        lower_pred = np.array(pred["quantiles"]["0.05"])
-        upper_pred = np.array(pred["quantiles"]["0.95"])
+        mean_pred_norm = np.array(pred["point"])
+        lower_pred_norm = np.array(pred["quantiles"]["0.05"])
+        upper_pred_norm = np.array(pred["quantiles"]["0.95"])
 
-        epochs_pred = np.arange(len(val_obs), len(val_obs) + len(mean_pred))
+        # ---------------------------------------------------
+        # Unnormalize predicted values
+        # ---------------------------------------------------
+        mean_pred_raw = mean_pred_norm * (y_max - y_min) + y_min
+        lower_pred_raw = lower_pred_norm * (y_max - y_min) + y_min
+        upper_pred_raw = upper_pred_norm * (y_max - y_min) + y_min
 
-        # Plot predicted curve
-        plt.plot(epochs_pred, mean_pred, color=color, linewidth=2, linestyle='--')
-        plt.fill_between(epochs_pred, lower_pred, upper_pred, color=color, alpha=0.2)
+        # Epoch numbering for predicted tail
+        epochs_pred = np.arange(len(val_obs_raw), len(val_obs_raw) + len(mean_pred_raw))
 
-    plt.ylim(0, 1)
+        # Plot unnormalized predicted curve
+        plt.plot(epochs_pred, mean_pred_raw, color=color, linewidth=2, linestyle="--")
+        plt.fill_between(epochs_pred, lower_pred_raw, upper_pred_raw, color=color, alpha=0.2)
+
     plt.grid(True)
     plt.legend(fontsize=11)
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f"ifbo_val_acc_obs{obs_epoch}.png"))
-
-    print(f"✅ Saved: {output_dir}/ifbo_val_acc_obs{obs_epoch}.png")
+    plt.savefig(os.path.join(output_dir, f"ifbo_val_acc_obs{obs_epoch}_unnorm.png"))
+    print(f"✅ Saved: {output_dir}/ifbo_val_acc_obs{obs_epoch}_unnorm.png")

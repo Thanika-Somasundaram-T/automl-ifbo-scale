@@ -16,7 +16,7 @@ venv/
 /data/
 /rank*
 /plots*
-
+/by_loss*
 
 # Model checkpoints
 *.pt

@@ -1,3 +1,14 @@
+"""
+Train an MLP on Fashion-MNIST and log metrics for NePS / IFBO experiments.
+
+This function:
+- Initializes a configurable MLP model
+- Trains it with specified hyperparameters and learning rate schedule
+- Tracks per-epoch metrics: loss, accuracy, AUC (train + validation)
+- Logs metrics to TensorBoard
+- Saves the model checkpoint and metrics JSON for later analysis
+"""
+
 import os
 import json
 from datetime import datetime
@@ -11,7 +22,6 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR
 from sklearn.metrics import roc_auc_score, accuracy_score
 import numpy as np
-
 
 from models.mlp import MLP4
 from utils import get_device, get_fashion_mnist_loaders
@@ -27,24 +37,65 @@ def train_mlp(
     trial_id: Optional[str] = None,
     log_dir: str = "./runs",
     save_dir: str = "./results",
-    lr_schedule: str = "none",  # NePS can override
+    lr_schedule: str = "none",  # Options: none, warmup, cosine, cooldown, warmup_cooldown
 ) -> float:
-    """Train MLP on Fashion-MNIST and return best validation loss (NePS compatible)."""
+    """
+    Train an MLP on Fashion-MNIST and return the best validation loss.
 
+    Args:
+        lr : float
+            Learning rate for optimizer.
+        num_layers : int
+            Number of MLP layers (currently unused, placeholder for future flexibility).
+        hidden_dim : int
+            Number of hidden units in each layer.
+        weight_decay : float
+            L2 regularization coefficient.
+        epochs : int
+            Number of training epochs.
+        batch_size : int
+            Mini-batch size.
+        trial_id : Optional[str]
+            Optional identifier for logging / experiment tracking.
+        log_dir : str
+            Directory to store TensorBoard logs.
+        save_dir : str
+            Directory to save model checkpoints and JSON metrics.
+        lr_schedule : str
+            Learning rate schedule type.
+
+    Returns:
+        float : Best validation loss observed during training.
+    """
+
+    # ----------------------------
+    # Device setup
+    # ----------------------------
     device = get_device()
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(save_dir, exist_ok=True)
 
-    # --- Model selection ---
+    # ----------------------------
+    # Model initialization
+    # ----------------------------
+    # Using fixed 4-layer MLP (MLP4), hidden_dim configurable
     model = MLP4(hidden_dim=hidden_dim)
     model.to(device)
 
+    # ----------------------------
+    # Data loaders
+    # ----------------------------
     train_loader, test_loader = get_fashion_mnist_loaders(batch_size=batch_size)
 
+    # ----------------------------
+    # Loss and optimizer
+    # ----------------------------
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
-    # --- Learning rate schedule ---
+    # ----------------------------
+    # Learning rate scheduler
+    # ----------------------------
     if lr_schedule == "none":
         scheduler = None
     elif lr_schedule == "warmup":
@@ -72,20 +123,26 @@ def train_mlp(
     else:
         raise ValueError(f"Unknown lr_schedule: {lr_schedule}")
 
-    # --- Run naming ---
+    # ----------------------------
+    # TensorBoard logging
+    # ----------------------------
     time_tag = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_name = f"MLP_layers{num_layers}_lr{lr:.0e}_hd{hidden_dim}_wd{weight_decay}_{lr_schedule}_{time_tag}"
     writer = SummaryWriter(log_dir=os.path.join(log_dir, run_name))
 
-    # --- Tracking ---
+    # ----------------------------
+    # Metric tracking
+    # ----------------------------
     train_loss_curve, val_loss_curve = [], []
     train_acc_curve, val_acc_curve = [], []
     train_auc_curve, val_auc_curve = [], []
-
     best_val_loss = float("inf")
 
-    # --- Training Loop ---
+    # ----------------------------
+    # Training loop
+    # ----------------------------
     for epoch in range(epochs):
+        # --- Training step ---
         model.train()
         total_train_loss, total_train_samples = 0.0, 0
         all_train_targets, all_train_probs = [], []
@@ -98,10 +155,9 @@ def train_mlp(
             loss.backward()
             optimizer.step()
 
+            # Track training metrics
             total_train_loss += loss.item() * y.size(0)
             total_train_samples += y.size(0)
-
-            # Collect targets and softmax probabilities for train AUC
             all_train_targets.extend(y.cpu().numpy())
             all_train_probs.extend(F.softmax(outputs, dim=1).detach().cpu().numpy())
 
@@ -121,7 +177,7 @@ def train_mlp(
         train_acc_curve.append(train_acc)
         train_auc_curve.append(train_auc)
 
-        # --- Validation ---
+        # --- Validation step ---
         model.eval()
         total_val_loss, total_val_samples = 0.0, 0
         all_val_targets, all_val_probs = [], []
@@ -133,7 +189,6 @@ def train_mlp(
                 loss = criterion(outputs, y)
                 total_val_loss += loss.item() * y.size(0)
                 total_val_samples += y.size(0)
-
                 all_val_targets.extend(y.cpu().numpy())
                 all_val_probs.extend(F.softmax(outputs, dim=1).cpu().numpy())
 
@@ -153,12 +208,13 @@ def train_mlp(
         val_acc_curve.append(val_acc)
         val_auc_curve.append(val_auc)
 
+        # --- Update scheduler ---
         if scheduler is not None:
             scheduler.step()
 
         current_lr = optimizer.param_groups[0]["lr"]
 
-        # --- TensorBoard Logging ---
+        # --- TensorBoard logging per epoch ---
         writer.add_scalar("train/Loss", train_loss, epoch)
         writer.add_scalar("val/Loss", val_loss, epoch)
         writer.add_scalar("train/Accuracy", train_acc, epoch)
@@ -167,6 +223,7 @@ def train_mlp(
         writer.add_scalar("val/AUC", val_auc, epoch)
         writer.add_scalar("lr", current_lr, epoch)
 
+        # --- Print progress ---
         print(
             f"Epoch {epoch+1}/{epochs}: "
             f"TrainLoss={train_loss:.4f}, ValLoss={val_loss:.4f}, "
@@ -174,12 +231,15 @@ def train_mlp(
             f"TrainAUC={train_auc:.4f}, ValAUC={val_auc:.4f}, LR={current_lr:.2e}"
         )
 
+        # Track best validation loss
         if val_loss < best_val_loss:
             best_val_loss = val_loss
 
     writer.close()
 
-    # --- Save model + curves ---
+    # ----------------------------
+    # Save model and metrics
+    # ----------------------------
     save_name = f"layer{num_layers}_lr{lr}_hd{hidden_dim}_wd{weight_decay}_{lr_schedule}.pt"
     torch.save(
         {
@@ -199,7 +259,9 @@ def train_mlp(
         os.path.join(save_dir, save_name),
     )
 
-    # --- Save JSON summary ---
+    # ----------------------------
+    # Save JSON summary for all runs
+    # ----------------------------
     json_path = os.path.join(save_dir, "results_metrics.json")
     if os.path.exists(json_path):
         with open(json_path, "r") as f:
