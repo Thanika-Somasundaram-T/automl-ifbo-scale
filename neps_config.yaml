@@ -2,7 +2,7 @@ pipeline_space:
   # Learning rates: pick 5 values logarithmically spaced
   lr:
     type: categorical
-    choices: [1e-5, 3e-5, 1e-4, 3e-4, 1e-3]
+    choices: [1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3]
 
   # Number of layers fixed
   num_layers: 4

@@ -10,7 +10,7 @@ venv/
 .ipynb_checkpoints/
 
 # Logs and results
-/results*
+/results_*
 /runs*
 /neps_results*
 /data/
