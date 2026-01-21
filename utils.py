@@ -26,7 +26,7 @@ def get_device():
         print("Using CPU.")
     return device
 
-def normalize_hyperparameters(lr, num_layer, hidden_dim, weight_decay):
+def normalize_hyperparameters(lr, hidden_dim, weight_decay):
     """
     Normalize hyperparameters to [0, 1] range for FT-PFN.
 
@@ -46,10 +46,10 @@ def normalize_hyperparameters(lr, num_layer, hidden_dim, weight_decay):
         torch.Tensor
             Normalized hyperparameter vector.
     """
-    lr_min, lr_max = 1e-5, 1e-1
-    hidden_min, hidden_max = 16, 512
+    lr_min, lr_max = 1e-5, 3e-3
+    hidden_min, hidden_max = 4, 128
     wd_min, wd_max = 0.0, 0.1
-    layer_min, layer_max = 2, 10
+    # layer_min, layer_max = 2, 10
 
     lr_norm = (
         math.log10(lr) - math.log10(lr_min)
@@ -57,10 +57,10 @@ def normalize_hyperparameters(lr, num_layer, hidden_dim, weight_decay):
 
     hidden_norm = (hidden_dim - hidden_min) / (hidden_max - hidden_min)
     weight_decay_norm = (weight_decay - wd_min) / (wd_max - wd_min)
-    layer_norm = (num_layer - layer_min) / (layer_max - layer_min)  # BUG FIX
+    # layer_norm = (num_layer - layer_min) / (layer_max - layer_min)  # BUG FIX
 
     return torch.tensor(
-        [lr_norm, layer_norm, hidden_norm, weight_decay_norm],
+        [lr_norm, hidden_norm, weight_decay_norm],
         dtype=torch.float32,
     ).clamp(0.0, 1.0)
 
