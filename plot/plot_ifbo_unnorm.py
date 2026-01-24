@@ -8,7 +8,7 @@ from utils import fixed_range_normalize, min_max_normalize
 # ---------------------------------------------------
 # Hardcoded observed epochs
 # ---------------------------------------------------
-epochs_observed_list = [10, 15, 30, 45, 50, 70, 90, 150]
+epochs_observed_list = [15, 50, 90]
 
 for obs_epoch in epochs_observed_list:
 
@@ -17,14 +17,14 @@ for obs_epoch in epochs_observed_list:
     # ---------------------------------------------------
     results_dir = "./results"
     pred_dir = "./results"
-    output_dir = "ifbo_plots_par_128_unnorm"
+    output_dir = "baseline_128_lr0.00001"
     os.makedirs(output_dir, exist_ok=True)
 
     # ---------------------------------------------------
     # Selected patterns
     # ---------------------------------------------------
-    patterns = [(0.0001, 0.0, "cosine", 4, 128)]
-    colors = ["red", "blue", "green", "orange", "purple", "brown"]
+    patterns = [(0.00001, 0.0, "cosine", 4, 128), (0.00001, 0.01, "cosine", 4, 128)]
+    colors = ["red", "blue", "green", "orange", "purple", "yellow"]
 
     # ---------------------------------------------------
     # Load training metrics
@@ -77,8 +77,9 @@ for obs_epoch in epochs_observed_list:
         plt.plot(
             np.arange(1, len(full_curve_raw) + 1),
             full_curve_raw,
-            color="black",
+            color=color,
             linewidth=2,
+            alpha=0.5,
         )
 
         # ---------------------------------------------------
@@ -98,7 +99,7 @@ for obs_epoch in epochs_observed_list:
         # ---------------------------------------------------
         # Load IFBO prediction
         # ---------------------------------------------------
-        pred_filename = f"context_par_{obs_epoch}.json"
+        pred_filename = f"baseline_{obs_epoch}.json"
         pred_path = os.path.join(pred_dir, pred_filename)
         if not os.path.exists(pred_path):
             print(f"❌ Missing IFBO prediction: {pred_filename}")

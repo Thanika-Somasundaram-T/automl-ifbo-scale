@@ -8,9 +8,7 @@ pipeline_space:
   num_layers: 4
 
   # Hidden dimensions
-  hidden_dim:
-    type: categorical
-    choices: [4, 8, 16, 24, 32, 64, 128]
+  hidden_dim: 128
 
   # Weight decay: 2 choices
   weight_decay:
@@ -21,10 +19,19 @@ pipeline_space:
   lr_schedule: "cosine"
 
   # Training parameters
-  epochs: 150
+  epochs: 
+    type: categorical
+    choices: [15, 50, 90]
+
+  # Different subsets of context curves
+  context_id:
+    type: categorical
+    choices: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+  
+  use_context: True
   batch_size: 96
 
 optimizer: grid_search
 
 # Maximum number of total evaluations (all combinations)
-max_evaluations_total: 70
+# max_evaluations_total: 70
