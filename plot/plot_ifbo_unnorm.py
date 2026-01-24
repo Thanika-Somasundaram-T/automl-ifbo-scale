@@ -1,141 +1,184 @@
 import os
 import json
-import matplotlib.pyplot as plt
 import numpy as np
-
+import matplotlib.pyplot as plt
 from utils import fixed_range_normalize, min_max_normalize
 
-# ---------------------------------------------------
-# Hardcoded observed epochs
-# ---------------------------------------------------
+# ===================================================
+# USER INPUT
+# ===================================================
+RESULTS_DIR = "./results"
+PRED_DIR = "./results"
+CURVES_FILE = os.path.join(RESULTS_DIR, "results_metrics.json")
+OUTPUT_DIR = "plots_ablation"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Observed epochs
 epochs_observed_list = [15, 50, 90]
 
-for obs_epoch in epochs_observed_list:
+# Prediction file prefixes (15 files)
+PRED_PREFIXES = [
+    "ifbo_pred_[16]_ep",
+    "ifbo_pred_[18]_ep",
+    "ifbo_pred_[24]_ep",
+    "ifbo_pred_[32]_ep",
+    "ifbo_pred_[64]_ep",
+    "ifbo_pred_[64_32]_ep",
+    "ifbo_pred_[64_32_24]_ep",
+    "ifbo_pred_[64_32_24_18]_ep",
+    "ifbo_pred_[64_32_24_18_16]_ep",
+    "ifbo_pred_[64_32_24_18_16_8]_ep",
+    "ifbo_pred_[64_32_24_18_16_8_4]_ep",
+    "ifbo_pred_[64_24]_ep",
+    "ifbo_pred_[64_18]_ep",
+    "ifbo_pred_[64_16]_ep",
+    "ifbo_pred_[32_24_18]_ep",
+]
 
-    # ---------------------------------------------------
-    # Paths
-    # ---------------------------------------------------
-    results_dir = "./results"
-    pred_dir = "./results"
-    output_dir = "baseline_128_lr0.00001"
-    os.makedirs(output_dir, exist_ok=True)
+# ===================================================
+# NePS SEARCH SPACE
+# ===================================================
+NEPS_SPACE = {
+    "lr": [1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3],
+    "weight_decay": [0.0, 0.01],
+    "lr_schedule": ["cosine"],
+    "num_layers": [4],
+    "hidden_dim": [128],
+}
 
-    # ---------------------------------------------------
-    # Selected patterns
-    # ---------------------------------------------------
-    patterns = [(0.00001, 0.0, "cosine", 4, 128), (0.00001, 0.01, "cosine", 4, 128)]
-    colors = ["red", "blue", "green", "orange", "purple", "yellow"]
+# ===================================================
+# LOAD METRICS
+# ===================================================
+with open(CURVES_FILE) as f:
+    metrics = json.load(f)
 
-    # ---------------------------------------------------
-    # Load training metrics
-    # ---------------------------------------------------
-    metrics_file = os.path.join(results_dir, "results_metrics.json")
-    with open(metrics_file) as f:
-        metrics = json.load(f)
+# ===================================================
+# EXTRACT PATTERNS
+# ===================================================
+patterns = []
+run_lookup = {}  # maps pattern -> run_key
+for run_key, v in metrics.items():
+    if (
+        v.get("lr") in NEPS_SPACE["lr"] and
+        v.get("weight_decay") in NEPS_SPACE["weight_decay"] and
+        v.get("lr_schedule") in NEPS_SPACE["lr_schedule"] and
+        v.get("num_layers") in NEPS_SPACE["num_layers"] and
+        v.get("hidden_dim") in NEPS_SPACE["hidden_dim"]
+    ):
+        pattern = (v["lr"], v["weight_decay"], v["lr_schedule"], v["num_layers"], v["hidden_dim"])
+        patterns.append(pattern)
+        run_lookup[pattern] = run_key
 
-    plt.figure(figsize=(16, 10), dpi=200)
-    plt.title(f"Observed + IFBO Predicted Validation Accuracy (Observed {obs_epoch} epochs)", fontsize=22)
-    plt.xlabel("Epoch", fontsize=18)
-    plt.ylabel("Validation Accuracy", fontsize=18)
+patterns = sorted(set(patterns))
+print(f"✅ Found {len(patterns)} patterns")
 
-    # ---------------------------------------------------
-    # Loop patterns
-    # ---------------------------------------------------
-    for (lr_val, wd_val, sched_val, layers_val, hd_val), color in zip(patterns, colors):
+# ===================================================
+# MAIN LOOP: one pattern at a time
+# ===================================================
+colors = plt.cm.tab20(np.linspace(0, 1, len(PRED_PREFIXES)))
 
-        # Find matching run
-        run_key = None
-        for k, v in metrics.items():
-            if (
-                v.get("lr") == lr_val and
-                v.get("weight_decay") == wd_val and
-                v.get("lr_schedule") == sched_val and
-                v.get("num_layers") == layers_val and
-                v.get("hidden_dim") == hd_val
-            ):
-                run_key = k
+for pat_idx, pattern in enumerate(patterns):
+    lr_val, wd_val, sched_val, layers_val, hd_val = pattern
+    run_key = run_lookup[pattern]
+    run_data = metrics[run_key]
+
+    # Load full curve once
+    full_curve_raw = np.asarray(run_data.get("val_acc_curve", []), dtype=float)
+    if len(full_curve_raw) == 0:
+        continue
+    y_min, y_max = 0.0, 1.0
+
+    for obs_epoch in epochs_observed_list:
+        n_rows, n_cols = 5, 3  # 3 plots horizontally, 5 vertically
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(18, 25), dpi=200)
+        axes = axes.flatten()
+
+        for idx, (prefix, color) in enumerate(zip(PRED_PREFIXES, colors)):
+            if idx >= n_rows * n_cols:
                 break
+            ax = axes[idx]
 
-        if not run_key:
-            print(f"No match for lr={lr_val}, wd={wd_val}, sched={sched_val}, L={layers_val}, hd={hd_val}")
-            continue
+            pred_filename = f"{prefix}{obs_epoch}.json"
+            pred_path = os.path.join(PRED_DIR, pred_filename)
 
-        run_data = metrics[run_key]
+            if not os.path.exists(pred_path):
+                print(f"❌ Missing IFBO file: {pred_filename}")
+                continue
 
-        # ---------------------------------------------------
-        # Full raw curve
-        # ---------------------------------------------------
-        full_curve_raw = np.array(run_data.get("val_acc_curve", []), dtype=float)
-        if len(full_curve_raw) == 0:
-            continue
+            with open(pred_path) as f:
+                pred_file_data = json.load(f)
 
-        # Normalize full curve for plotting comparison (optional)
-        # full_curve_norm = fixed_range_normalize(full_curve_raw)
-        y_min, y_max = 0.0, 1.0
+            key = f"layer{layers_val}_lr{lr_val}_hd{hd_val}_wd{wd_val}_{sched_val}_{obs_epoch}"
+            if key not in pred_file_data:
+                print(f"❌ Missing IFBO key in {pred_filename}: {key}")
+                continue
 
-        # Plot full raw curve (light shade)
-        plt.plot(
-            np.arange(1, len(full_curve_raw) + 1),
-            full_curve_raw,
-            color=color,
-            linewidth=2,
-            alpha=0.5,
-        )
+            pred = pred_file_data[key]
+            print(prefix, "prefix")
 
-        # ---------------------------------------------------
-        # Observed curve (raw)
-        # ---------------------------------------------------
-        val_obs_raw = full_curve_raw[:obs_epoch]
-        epochs_obs = np.arange(1, len(val_obs_raw) + 1)
+            # -----------------------------
+            # Full ground truth
+            # -----------------------------
+            ax.plot(
+                np.arange(1, len(full_curve_raw)+1),
+                full_curve_raw,
+                color='gray',
+                linewidth=2,
+                alpha=0.4,
+                label='Ground Truth'
+            )
 
-        plt.plot(
-            epochs_obs,
-            val_obs_raw,
-            color=color,
-            linewidth=3,
-            label=f"{sched_val}, lr={lr_val}, wd={wd_val}, L={layers_val}, hd={hd_val} (obs {obs_epoch})"
-        )
+            # -----------------------------
+            # Observed curve
+            # -----------------------------
+            val_obs_raw = full_curve_raw[:obs_epoch]
+            epochs_obs = np.arange(1, len(val_obs_raw)+1)
+            ax.plot(
+                epochs_obs,
+                val_obs_raw,
+                color=color,
+                linewidth=3,
+                label='Observed'
+            )
 
-        # ---------------------------------------------------
-        # Load IFBO prediction
-        # ---------------------------------------------------
-        pred_filename = f"baseline_{obs_epoch}.json"
-        pred_path = os.path.join(pred_dir, pred_filename)
-        if not os.path.exists(pred_path):
-            print(f"❌ Missing IFBO prediction: {pred_filename}")
-            continue
+            # -----------------------------
+            # Prediction
+            # -----------------------------
+            mean_pred_norm = np.asarray(pred["point"])
+            lower_pred_norm = np.asarray(pred["quantiles"]["0.05"])
+            upper_pred_norm = np.asarray(pred["quantiles"]["0.95"])
 
-        with open(pred_path) as f:
-            pred_file_data = json.load(f)
+            mean_pred_raw = mean_pred_norm * (y_max - y_min) + y_min
+            lower_pred_raw = lower_pred_norm * (y_max - y_min) + y_min
+            upper_pred_raw = upper_pred_norm * (y_max - y_min) + y_min
 
-        key = f"layer{layers_val}_lr{lr_val}_hd{hd_val}_wd{wd_val}_{sched_val}_{obs_epoch}"
+            epochs_pred = np.arange(len(val_obs_raw), len(val_obs_raw)+len(mean_pred_raw))
+            ax.plot(epochs_pred, mean_pred_raw, color=color, linestyle='--', linewidth=2)
+            ax.fill_between(epochs_pred, lower_pred_raw, upper_pred_raw, color=color, alpha=0.2)
 
-        if key not in pred_file_data:
-            print(f"❌ Missing prediction key in {pred_filename}: {key}")
-            continue
+            # -----------------------------
+            # Formatting
+            # -----------------------------
+            pred_name_part = prefix.split("ifbo_pred_")[1].replace("_ep","")
+            ax.set_title(f"{pred_name_part} | lr={lr_val}, wd={wd_val}", fontsize=10)
+            ax.set_xlabel("Epoch")
+            ax.set_ylabel("Val Acc")
+            ax.set_ylim(y_min, y_max)
+            ax.grid(True)
 
-        pred = pred_file_data[key]
+        # Remove any extra subplots
+        for j in range(len(PRED_PREFIXES), n_rows*n_cols):
+            fig.delaxes(axes[j])
 
-        mean_pred_norm = np.array(pred["point"])
-        lower_pred_norm = np.array(pred["quantiles"]["0.05"])
-        upper_pred_norm = np.array(pred["quantiles"]["0.95"])
+        plt.tight_layout()
 
-        # ---------------------------------------------------
-        # Unnormalize predicted values
-        # ---------------------------------------------------
-        mean_pred_raw = mean_pred_norm * (y_max - y_min) + y_min
-        lower_pred_raw = lower_pred_norm * (y_max - y_min) + y_min
-        upper_pred_raw = upper_pred_norm * (y_max - y_min) + y_min
+        # -----------------------------
+        # Save figure using pred file + pattern
+        # -----------------------------
+        filename = f"lr{lr_val}_wd{wd_val}_obs{obs_epoch}.png"
+        # filename = filename.replace(".", "_")  # optional: replace dots with 'p'
 
-        # Epoch numbering for predicted tail
-        epochs_pred = np.arange(len(val_obs_raw), len(val_obs_raw) + len(mean_pred_raw))
-
-        # Plot unnormalized predicted curve
-        plt.plot(epochs_pred, mean_pred_raw, color=color, linewidth=2, linestyle="--")
-        plt.fill_between(epochs_pred, lower_pred_raw, upper_pred_raw, color=color, alpha=0.2)
-
-    plt.grid(True)
-    plt.legend(fontsize=11)
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f"ifbo_val_acc_obs{obs_epoch}_unnorm.png"))
-    print(f"✅ Saved: {output_dir}/ifbo_val_acc_obs{obs_epoch}_unnorm.png")
+        out_path = os.path.join(OUTPUT_DIR, filename)
+        plt.savefig(out_path)
+        plt.close()
+        print(f"✅ Saved: {out_path}")
