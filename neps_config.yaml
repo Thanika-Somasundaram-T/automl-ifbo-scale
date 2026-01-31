@@ -21,13 +21,13 @@ pipeline_space:
   # Training parameters
   epochs: 
     type: categorical
-    choices: [15, 50, 90]
+    choices: [0, 5, 10, 20]
 
   # Different subsets of context curves
   context_id:
     type: categorical
-    choices: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
-  
+    choices: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24]
+
   use_context: True
   batch_size: 96
 
