@@ -55,7 +55,10 @@ def normalize_hyperparameters(lr, hidden_dim, weight_decay):
         math.log10(lr) - math.log10(lr_min)
     ) / (math.log10(lr_max) - math.log10(lr_min))
 
-    hidden_norm = (hidden_dim - hidden_min) / (hidden_max - hidden_min)
+    hidden_norm = (
+        math.log2(hidden_dim) - math.log2(hidden_min)
+    ) / (math.log2(hidden_max) - math.log2(hidden_min))
+
     weight_decay_norm = (weight_decay - wd_min) / (wd_max - wd_min)
     # layer_norm = (num_layer - layer_min) / (layer_max - layer_min)  # BUG FIX
 
