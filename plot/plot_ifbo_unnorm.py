@@ -10,29 +10,39 @@ from utils import fixed_range_normalize, min_max_normalize
 RESULTS_DIR = "./results"
 PRED_DIR = "./results"
 CURVES_FILE = os.path.join(RESULTS_DIR, "results_metrics.json")
-OUTPUT_DIR = "plots_ablation"
+OUTPUT_DIR = "new_ablation_plots"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Observed epochs
-epochs_observed_list = [15, 50, 90]
+epochs_observed_list = [0, 5, 10, 20]
 
 # Prediction file prefixes (15 files)
 PRED_PREFIXES = [
+    "ifbo_pred_[4]_ep",
+    "ifbo_pred_[8]_ep",
     "ifbo_pred_[16]_ep",
-    "ifbo_pred_[18]_ep",
     "ifbo_pred_[24]_ep",
     "ifbo_pred_[32]_ep",
     "ifbo_pred_[64]_ep",
     "ifbo_pred_[64_32]_ep",
     "ifbo_pred_[64_32_24]_ep",
-    "ifbo_pred_[64_32_24_18]_ep",
-    "ifbo_pred_[64_32_24_18_16]_ep",
-    "ifbo_pred_[64_32_24_18_16_8]_ep",
-    "ifbo_pred_[64_32_24_18_16_8_4]_ep",
+    "ifbo_pred_[64_32_24_16]_ep",
+    "ifbo_pred_[64_32_24_16_8]_ep",
+    "ifbo_pred_[64_32_24_16_8_4]_ep",
     "ifbo_pred_[64_24]_ep",
-    "ifbo_pred_[64_18]_ep",
     "ifbo_pred_[64_16]_ep",
-    "ifbo_pred_[32_24_18]_ep",
+    "ifbo_pred_[64_8]_ep",
+    "ifbo_pred_[64_4]_ep",
+    "ifbo_pred_[32_24_16_8_4]_ep",
+    "ifbo_pred_[24_16_8_4]_ep",
+    "ifbo_pred_[16_8_4]_ep",
+    "ifbo_pred_[8_4]_ep",
+    "ifbo_pred_[64_24_16_8_4]_ep",
+    "ifbo_pred_[64_32_16_8_4]_ep",
+    "ifbo_pred_[64_32_24_8_4]_ep",
+    "ifbo_pred_[64_32_24_16_4]_ep",
+    "ifbo_pred_[64_8_4]_ep",
+    "ifbo_pred_[32_24_16]_ep",
 ]
 
 # ===================================================
@@ -89,7 +99,7 @@ for pat_idx, pattern in enumerate(patterns):
     y_min, y_max = 0.0, 1.0
 
     for obs_epoch in epochs_observed_list:
-        n_rows, n_cols = 5, 3  # 3 plots horizontally, 5 vertically
+        n_rows, n_cols = 5, 5  # 3 plots horizontally, 5 vertically
         fig, axes = plt.subplots(n_rows, n_cols, figsize=(18, 25), dpi=200)
         axes = axes.flatten()
 
@@ -122,9 +132,9 @@ for pat_idx, pattern in enumerate(patterns):
             ax.plot(
                 np.arange(1, len(full_curve_raw)+1),
                 full_curve_raw,
-                color='gray',
+                color=color,
                 linewidth=2,
-                alpha=0.4,
+                alpha=0.8,
                 label='Ground Truth'
             )
 
@@ -137,7 +147,7 @@ for pat_idx, pattern in enumerate(patterns):
                 epochs_obs,
                 val_obs_raw,
                 color=color,
-                linewidth=3,
+                linewidth=4,
                 label='Observed'
             )
 
