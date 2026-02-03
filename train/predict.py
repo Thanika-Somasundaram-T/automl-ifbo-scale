@@ -6,28 +6,40 @@ from utils import fixed_range_normalize, get_device, normalize_hyperparameters, 
 from ifbo.surrogate import FTPFN
 from ifbo import Curve
 
+
 selected_context_curves = [
     (64,),
     (64, 32),
     (64, 32, 24),
-    (64, 32, 24, 18),
-    (64, 32, 24, 18, 16),
-    (64, 32, 24, 18, 16, 8),
-    (64, 32, 24, 18, 16, 8, 4),
+    (64, 32, 24, 16),
+    (64, 32, 24, 16, 8),
+    (64, 32, 24, 16, 8, 4),
     (32,),
     (24,),
-    (18,),
     (16,),
+    (8,),
+    (4,),
     (64, 24),
-    (64, 18),
     (64, 16),
-    (32, 24, 18),
+    (64, 8),
+    (64, 4),
+    (32, 24, 16, 8, 4),
+    (24, 16, 8, 4),
+    (16, 8, 4),
+    (8, 4),
+    (64, 24, 16, 8, 4),
+    (64, 32, 16, 8, 4),
+    (64, 32, 24, 8, 4),
+    (64, 32, 24, 16, 4),
+    (64, 8, 4),
+    (32, 24, 16),
 ]
+
 
 def predict(
     lr: float = 1e-3,
     num_layers: int = 4,
-    hidden_dim: int = 64,
+    hidden_dim: int = 128,
     weight_decay: float = 0.0,
     lr_schedule: str = "none",
     epochs: int = 15,
@@ -44,7 +56,7 @@ def predict(
     # -------------------------
     # Load low-scale context curves (e.g., HD=64)
     # -------------------------
-    
+
     json_path = os.path.join(save_dir, "results_metrics.json")
     print("for hd: ", hidden_dim)
     if os.path.exists(json_path):
@@ -52,7 +64,7 @@ def predict(
             all_results = json.load(f)
 
         target_epochs = 150
-
+        
         if context_id < 0 or context_id >= len(selected_context_curves):
             raise ValueError(f"Invalid context_id {context_id}")
         
@@ -98,18 +110,10 @@ def predict(
             )
 
         print(f"Saved ----------- {len(context_curves)} curves to FT-PFN context")
-    
+
         # -------------------------
         # Add same-scale model curves as context
         # -------------------------
-        """
-        json_path = os.path.join(save_dir, "results_metrics.json")
-        if os.path.exists(json_path):
-            with open(json_path, "r") as f:
-                all_results = json.load(f)
-
-            target_epochs = 150
-        """
 
         for run_key, run_data in all_results.items():
             if run_data.get("lr") != lr or run_data.get("hidden_dim") != hidden_dim or run_data.get("weight_decay") != weight_decay:
@@ -177,7 +181,8 @@ def predict(
             save_dir, 
             f"ifbo_pred_[{subset_name}]_ep{epochs}.json"
         )
-        
+
+
         if os.path.exists(pred_json_path):
             with open(pred_json_path, "r") as f:
                 all_preds = json.load(f)
