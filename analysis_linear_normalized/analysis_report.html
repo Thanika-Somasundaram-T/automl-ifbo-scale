@@ -1,0 +1,1700 @@
+<html><head><title>Linear-Normalized Analysis</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background-color: #f9f9f9; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 40px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #2196F3; padding-bottom: 10px; }
+        h2 { color: #555; margin-top: 30px; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 30px; font-size: 0.85em; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+        th { background-color: #f1f1f1; font-weight: bold; }
+        td:first-child { text-align: left; font-weight: bold; min-width: 140px; max-width: 180px; }
+        tbody tr:nth-child(odd) { background-color: #fff; }
+        tbody tr:nth-child(even) { background-color: #f5f5f5; }
+        .nll-col { font-weight: bold; }
+        .mse-col { color: #555; }
+        .col-best { background-color: #c8e6c9 !important; }
+        .col-worst { background-color: #ffcdd2 !important; }
+        .table-best { background-color: #198754 !important; color: white; font-weight: bold; }
+        .table-worst { background-color: #dc3545 !important; color: white; font-weight: bold; }
+        .global-best { border: 3px solid black !important; }
+        .global-worst { border: 3px solid black !important; }
+        .global-best-row td { border-top: 3px solid black !important; border-bottom: 3px solid black !important; }
+        .global-best-row td:first-child { border-left: 3px solid black !important; }
+        .global-best-row td:last-child { border-right: 3px solid black !important; }
+        .global-worst-row td { border-top: 3px solid black !important; border-bottom: 3px solid black !important; }
+        .global-worst-row td:first-child { border-left: 3px solid black !important; }
+        .global-worst-row td:last-child { border-right: 3px solid black !important; }
+    </style>
+    </head><body><div class='container'>
+<h1>FT-PFN Analysis (Linear-Normalized Hidden Dim)</h1>
+<p>Observation epochs: 15, 50, 90. <b>NLL</b> and <b>MSE</b> (lower=better).</p>
+<p><small>🟩 Dark green = table best | 🟥 Dark red = table worst | Light colors = column best/worst | Black border = global best/worst</small></p>
+<h2>Config: LR=0.0001, WD=0.0</h2>
+<table><thead><tr><th rowspan='2'>Context</th>
+<th colspan='2'>Epoch 15</th>
+<th colspan='2'>Epoch 50</th>
+<th colspan='2'>Epoch 90</th>
+</tr><tr>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+</tr></thead><tbody>
+<tr class=''><td>Baseline</td>
+<td class='nll-col'>-1.9563</td>
+<td class='mse-col table-worst'>4.25e-05</td>
+<td class='nll-col'>-3.6438</td>
+<td class='mse-col col-best'>1.88e-06</td>
+<td class='nll-col'>-4.1613</td>
+<td class='mse-col col-worst'>3.07e-06</td>
+</tr>
+<tr class=''><td>16</td>
+<td class='nll-col table-worst'>-1.7256</td>
+<td class='mse-col'>2.43e-05</td>
+<td class='nll-col col-worst'>-2.5085</td>
+<td class='mse-col'>2.99e-06</td>
+<td class='nll-col'>-3.6915</td>
+<td class='mse-col'>1.95e-06</td>
+</tr>
+<tr class=''><td>18</td>
+<td class='nll-col'>-1.9563</td>
+<td class='mse-col'>4.25e-05</td>
+<td class='nll-col'>-3.6438</td>
+<td class='mse-col'>1.88e-06</td>
+<td class='nll-col'>-4.1613</td>
+<td class='mse-col'>3.07e-06</td>
+</tr>
+<tr class=''><td>24</td>
+<td class='nll-col'>-2.0755</td>
+<td class='mse-col'>3.17e-06</td>
+<td class='nll-col'>-3.1089</td>
+<td class='mse-col'>5.17e-06</td>
+<td class='nll-col'>-3.8454</td>
+<td class='mse-col'>1.25e-06</td>
+</tr>
+<tr class=''><td>32</td>
+<td class='nll-col'>-2.6475</td>
+<td class='mse-col'>2.11e-06</td>
+<td class='nll-col'>-3.7165</td>
+<td class='mse-col'>8.67e-06</td>
+<td class='nll-col'>-4.0956</td>
+<td class='mse-col'>1.32e-06</td>
+</tr>
+<tr class=''><td>64</td>
+<td class='nll-col col-best'>-3.8119</td>
+<td class='mse-col'>3.72e-06</td>
+<td class='nll-col col-best'>-4.1249</td>
+<td class='mse-col'>5.76e-06</td>
+<td class='nll-col table-best'>-4.2241</td>
+<td class='mse-col'>1.06e-06</td>
+</tr>
+<tr class=''><td>32, 24, 18</td>
+<td class='nll-col'>-1.9292</td>
+<td class='mse-col'>3.44e-06</td>
+<td class='nll-col'>-2.7989</td>
+<td class='mse-col'>8.62e-06</td>
+<td class='nll-col col-worst'>-3.6384</td>
+<td class='mse-col'>6.08e-07</td>
+</tr>
+<tr class=''><td>64, 16</td>
+<td class='nll-col'>-2.6404</td>
+<td class='mse-col'>4.86e-06</td>
+<td class='nll-col'>-3.1717</td>
+<td class='mse-col'>9.55e-06</td>
+<td class='nll-col'>-3.8499</td>
+<td class='mse-col'>6.19e-07</td>
+</tr>
+<tr class=''><td>64, 18</td>
+<td class='nll-col'>-3.8119</td>
+<td class='mse-col'>3.72e-06</td>
+<td class='nll-col'>-4.1249</td>
+<td class='mse-col'>5.76e-06</td>
+<td class='nll-col'>-4.2241</td>
+<td class='mse-col'>1.06e-06</td>
+</tr>
+<tr class=''><td>64, 24</td>
+<td class='nll-col'>-2.9010</td>
+<td class='mse-col'>9.23e-06</td>
+<td class='nll-col'>-3.5267</td>
+<td class='mse-col'>8.39e-06</td>
+<td class='nll-col'>-3.9320</td>
+<td class='mse-col table-best'>5.95e-07</td>
+</tr>
+<tr class=''><td>64, 32</td>
+<td class='nll-col'>-3.4763</td>
+<td class='mse-col'>1.07e-05</td>
+<td class='nll-col'>-3.8870</td>
+<td class='mse-col'>1.06e-05</td>
+<td class='nll-col'>-4.0197</td>
+<td class='mse-col'>6.33e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24</td>
+<td class='nll-col'>-2.8819</td>
+<td class='mse-col'>6.21e-06</td>
+<td class='nll-col'>-3.8981</td>
+<td class='mse-col'>5.54e-06</td>
+<td class='nll-col'>-4.1139</td>
+<td class='mse-col'>7.77e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18</td>
+<td class='nll-col'>-2.8819</td>
+<td class='mse-col'>6.21e-06</td>
+<td class='nll-col'>-3.8981</td>
+<td class='mse-col'>5.54e-06</td>
+<td class='nll-col'>-4.1139</td>
+<td class='mse-col'>7.77e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16</td>
+<td class='nll-col'>-2.8247</td>
+<td class='mse-col col-best'>2.02e-06</td>
+<td class='nll-col'>-3.4712</td>
+<td class='mse-col'>1.08e-05</td>
+<td class='nll-col'>-3.7559</td>
+<td class='mse-col'>1.17e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8</td>
+<td class='nll-col'>-3.0201</td>
+<td class='mse-col'>2.68e-06</td>
+<td class='nll-col'>-3.4009</td>
+<td class='mse-col'>3.42e-06</td>
+<td class='nll-col'>-3.7907</td>
+<td class='mse-col'>1.14e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8, 4</td>
+<td class='nll-col'>-2.5173</td>
+<td class='mse-col'>7.12e-06</td>
+<td class='nll-col'>-3.9029</td>
+<td class='mse-col col-worst'>1.52e-05</td>
+<td class='nll-col'>-4.1917</td>
+<td class='mse-col'>6.37e-07</td>
+</tr>
+</tbody></table>
+<h2>Config: LR=0.0001, WD=0.01</h2>
+<table><thead><tr><th rowspan='2'>Context</th>
+<th colspan='2'>Epoch 15</th>
+<th colspan='2'>Epoch 50</th>
+<th colspan='2'>Epoch 90</th>
+</tr><tr>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+</tr></thead><tbody>
+<tr class=''><td>Baseline</td>
+<td class='nll-col'>-1.9084</td>
+<td class='mse-col table-worst'>8.23e-05</td>
+<td class='nll-col'>-3.0851</td>
+<td class='mse-col col-worst'>6.65e-05</td>
+<td class='nll-col'>-4.2592</td>
+<td class='mse-col'>1.86e-06</td>
+</tr>
+<tr class=''><td>16</td>
+<td class='nll-col table-worst'>-1.7934</td>
+<td class='mse-col'>3.96e-05</td>
+<td class='nll-col col-worst'>-2.5479</td>
+<td class='mse-col'>4.73e-05</td>
+<td class='nll-col col-worst'>-4.1590</td>
+<td class='mse-col col-worst'>5.66e-06</td>
+</tr>
+<tr class=''><td>18</td>
+<td class='nll-col'>-1.9084</td>
+<td class='mse-col'>8.23e-05</td>
+<td class='nll-col'>-3.0851</td>
+<td class='mse-col'>6.65e-05</td>
+<td class='nll-col'>-4.2592</td>
+<td class='mse-col'>1.86e-06</td>
+</tr>
+<tr class=''><td>24</td>
+<td class='nll-col'>-2.0712</td>
+<td class='mse-col'>1.48e-05</td>
+<td class='nll-col'>-3.0722</td>
+<td class='mse-col'>3.96e-05</td>
+<td class='nll-col'>-4.1635</td>
+<td class='mse-col'>5.10e-06</td>
+</tr>
+<tr class=''><td>32</td>
+<td class='nll-col'>-2.7155</td>
+<td class='mse-col'>1.43e-05</td>
+<td class='nll-col'>-3.5909</td>
+<td class='mse-col'>4.00e-05</td>
+<td class='nll-col'>-4.2252</td>
+<td class='mse-col'>2.72e-06</td>
+</tr>
+<tr class=''><td>64</td>
+<td class='nll-col col-best'>-3.7434</td>
+<td class='mse-col'>7.93e-06</td>
+<td class='nll-col col-best'>-3.9803</td>
+<td class='mse-col col-best'>1.88e-05</td>
+<td class='nll-col table-best'>-4.2624</td>
+<td class='mse-col'>1.73e-06</td>
+</tr>
+<tr class=''><td>32, 24, 18</td>
+<td class='nll-col'>-1.9044</td>
+<td class='mse-col'>7.74e-06</td>
+<td class='nll-col'>-2.7283</td>
+<td class='mse-col'>4.34e-05</td>
+<td class='nll-col'>-4.2337</td>
+<td class='mse-col'>1.89e-06</td>
+</tr>
+<tr class=''><td>64, 16</td>
+<td class='nll-col'>-2.5856</td>
+<td class='mse-col'>2.87e-06</td>
+<td class='nll-col'>-3.1361</td>
+<td class='mse-col'>3.21e-05</td>
+<td class='nll-col'>-4.2168</td>
+<td class='mse-col'>3.22e-06</td>
+</tr>
+<tr class=''><td>64, 18</td>
+<td class='nll-col'>-3.7434</td>
+<td class='mse-col'>7.93e-06</td>
+<td class='nll-col'>-3.9803</td>
+<td class='mse-col'>1.88e-05</td>
+<td class='nll-col'>-4.2624</td>
+<td class='mse-col'>1.73e-06</td>
+</tr>
+<tr class=''><td>64, 24</td>
+<td class='nll-col'>-2.7847</td>
+<td class='mse-col col-best'>1.89e-06</td>
+<td class='nll-col'>-3.3739</td>
+<td class='mse-col'>3.53e-05</td>
+<td class='nll-col'>-4.2337</td>
+<td class='mse-col'>2.25e-06</td>
+</tr>
+<tr class=''><td>64, 32</td>
+<td class='nll-col'>-3.4349</td>
+<td class='mse-col'>2.59e-06</td>
+<td class='nll-col'>-3.8328</td>
+<td class='mse-col'>2.72e-05</td>
+<td class='nll-col'>-4.2440</td>
+<td class='mse-col'>1.96e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24</td>
+<td class='nll-col'>-2.6502</td>
+<td class='mse-col'>2.00e-06</td>
+<td class='nll-col'>-3.7316</td>
+<td class='mse-col'>2.51e-05</td>
+<td class='nll-col'>-4.2550</td>
+<td class='mse-col table-best'>9.02e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18</td>
+<td class='nll-col'>-2.6502</td>
+<td class='mse-col'>2.00e-06</td>
+<td class='nll-col'>-3.7316</td>
+<td class='mse-col'>2.51e-05</td>
+<td class='nll-col'>-4.2550</td>
+<td class='mse-col'>9.02e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16</td>
+<td class='nll-col'>-2.7792</td>
+<td class='mse-col'>4.97e-06</td>
+<td class='nll-col'>-3.6399</td>
+<td class='mse-col'>1.92e-05</td>
+<td class='nll-col'>-4.1772</td>
+<td class='mse-col'>4.89e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8</td>
+<td class='nll-col'>-3.0585</td>
+<td class='mse-col'>3.88e-06</td>
+<td class='nll-col'>-3.0157</td>
+<td class='mse-col'>3.99e-05</td>
+<td class='nll-col'>-4.2107</td>
+<td class='mse-col'>2.57e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8, 4</td>
+<td class='nll-col'>-2.2212</td>
+<td class='mse-col'>4.64e-06</td>
+<td class='nll-col'>-3.4125</td>
+<td class='mse-col'>3.71e-05</td>
+<td class='nll-col'>-4.1909</td>
+<td class='mse-col'>4.08e-06</td>
+</tr>
+</tbody></table>
+<h2>Config: LR=0.0003, WD=0.0</h2>
+<table><thead><tr><th rowspan='2'>Context</th>
+<th colspan='2'>Epoch 15</th>
+<th colspan='2'>Epoch 50</th>
+<th colspan='2'>Epoch 90</th>
+</tr><tr>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+</tr></thead><tbody>
+<tr class=''><td>Baseline</td>
+<td class='nll-col'>-1.9338</td>
+<td class='mse-col col-best'>1.86e-06</td>
+<td class='nll-col'>-3.7872</td>
+<td class='mse-col'>5.27e-06</td>
+<td class='nll-col'>-4.2156</td>
+<td class='mse-col'>1.12e-06</td>
+</tr>
+<tr class=''><td>16</td>
+<td class='nll-col table-worst'>-1.6457</td>
+<td class='mse-col'>5.66e-06</td>
+<td class='nll-col col-worst'>-3.1586</td>
+<td class='mse-col'>1.19e-05</td>
+<td class='nll-col col-worst'>-4.0253</td>
+<td class='mse-col col-worst'>9.80e-06</td>
+</tr>
+<tr class=''><td>18</td>
+<td class='nll-col'>-1.9338</td>
+<td class='mse-col'>1.86e-06</td>
+<td class='nll-col'>-3.7872</td>
+<td class='mse-col'>5.27e-06</td>
+<td class='nll-col'>-4.2156</td>
+<td class='mse-col'>1.12e-06</td>
+</tr>
+<tr class=''><td>24</td>
+<td class='nll-col'>-2.1758</td>
+<td class='mse-col'>1.07e-05</td>
+<td class='nll-col'>-3.8903</td>
+<td class='mse-col'>1.13e-05</td>
+<td class='nll-col'>-4.0929</td>
+<td class='mse-col'>8.09e-06</td>
+</tr>
+<tr class=''><td>32</td>
+<td class='nll-col'>-2.4760</td>
+<td class='mse-col'>8.72e-06</td>
+<td class='nll-col'>-4.0315</td>
+<td class='mse-col'>8.76e-06</td>
+<td class='nll-col'>-4.1342</td>
+<td class='mse-col'>6.66e-06</td>
+</tr>
+<tr class=''><td>64</td>
+<td class='nll-col col-best'>-3.8968</td>
+<td class='mse-col'>2.08e-06</td>
+<td class='nll-col col-best'>-4.2169</td>
+<td class='mse-col col-best'>2.40e-06</td>
+<td class='nll-col table-best'>-4.2323</td>
+<td class='mse-col'>2.77e-06</td>
+</tr>
+<tr class=''><td>32, 24, 18</td>
+<td class='nll-col'>-1.9799</td>
+<td class='mse-col'>2.52e-05</td>
+<td class='nll-col'>-3.5629</td>
+<td class='mse-col'>7.78e-06</td>
+<td class='nll-col'>-4.0904</td>
+<td class='mse-col'>4.07e-06</td>
+</tr>
+<tr class=''><td>64, 16</td>
+<td class='nll-col'>-2.5227</td>
+<td class='mse-col'>2.22e-05</td>
+<td class='nll-col'>-3.6299</td>
+<td class='mse-col'>9.05e-06</td>
+<td class='nll-col'>-4.1003</td>
+<td class='mse-col'>5.77e-06</td>
+</tr>
+<tr class=''><td>64, 18</td>
+<td class='nll-col'>-3.8968</td>
+<td class='mse-col'>2.08e-06</td>
+<td class='nll-col'>-4.2169</td>
+<td class='mse-col'>2.40e-06</td>
+<td class='nll-col'>-4.2323</td>
+<td class='mse-col'>2.77e-06</td>
+</tr>
+<tr class=''><td>64, 24</td>
+<td class='nll-col'>-3.2238</td>
+<td class='mse-col'>2.77e-05</td>
+<td class='nll-col'>-3.9975</td>
+<td class='mse-col'>6.74e-06</td>
+<td class='nll-col'>-4.1151</td>
+<td class='mse-col'>4.35e-06</td>
+</tr>
+<tr class=''><td>64, 32</td>
+<td class='nll-col'>-3.3050</td>
+<td class='mse-col table-worst'>2.80e-05</td>
+<td class='nll-col'>-4.0572</td>
+<td class='mse-col'>6.24e-06</td>
+<td class='nll-col'>-4.1499</td>
+<td class='mse-col'>4.18e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24</td>
+<td class='nll-col'>-3.1477</td>
+<td class='mse-col'>1.24e-05</td>
+<td class='nll-col'>-4.1070</td>
+<td class='mse-col'>4.63e-06</td>
+<td class='nll-col'>-4.1908</td>
+<td class='mse-col'>3.23e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18</td>
+<td class='nll-col'>-3.1477</td>
+<td class='mse-col'>1.24e-05</td>
+<td class='nll-col'>-4.1070</td>
+<td class='mse-col'>4.63e-06</td>
+<td class='nll-col'>-4.1908</td>
+<td class='mse-col'>3.23e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16</td>
+<td class='nll-col'>-2.8067</td>
+<td class='mse-col'>1.10e-05</td>
+<td class='nll-col'>-3.8573</td>
+<td class='mse-col'>1.06e-05</td>
+<td class='nll-col'>-4.0787</td>
+<td class='mse-col'>5.14e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8</td>
+<td class='nll-col'>-2.9484</td>
+<td class='mse-col'>7.32e-06</td>
+<td class='nll-col'>-3.8213</td>
+<td class='mse-col'>4.07e-06</td>
+<td class='nll-col'>-4.1480</td>
+<td class='mse-col table-best'>1.09e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8, 4</td>
+<td class='nll-col'>-2.3541</td>
+<td class='mse-col'>1.74e-05</td>
+<td class='nll-col'>-4.0046</td>
+<td class='mse-col col-worst'>1.42e-05</td>
+<td class='nll-col'>-4.1946</td>
+<td class='mse-col'>2.91e-06</td>
+</tr>
+</tbody></table>
+<h2>Config: LR=0.0003, WD=0.01</h2>
+<table><thead><tr><th rowspan='2'>Context</th>
+<th colspan='2'>Epoch 15</th>
+<th colspan='2'>Epoch 50</th>
+<th colspan='2'>Epoch 90</th>
+</tr><tr>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+</tr></thead><tbody>
+<tr class='global-worst-row'><td>Baseline</td>
+<td class='nll-col table-worst'>-1.1768</td>
+<td class='mse-col global-worst table-worst'>1.17e-03</td>
+<td class='nll-col'>-3.7942</td>
+<td class='mse-col'>3.50e-05</td>
+<td class='nll-col'>-4.2192</td>
+<td class='mse-col'>4.45e-06</td>
+</tr>
+<tr class=''><td>16</td>
+<td class='nll-col'>-1.1779</td>
+<td class='mse-col'>4.21e-04</td>
+<td class='nll-col col-worst'>-3.7043</td>
+<td class='mse-col'>2.98e-05</td>
+<td class='nll-col'>-4.1957</td>
+<td class='mse-col'>3.86e-06</td>
+</tr>
+<tr class=''><td>18</td>
+<td class='nll-col'>-1.1768</td>
+<td class='mse-col'>1.17e-03</td>
+<td class='nll-col'>-3.7942</td>
+<td class='mse-col'>3.50e-05</td>
+<td class='nll-col'>-4.2192</td>
+<td class='mse-col'>4.45e-06</td>
+</tr>
+<tr class=''><td>24</td>
+<td class='nll-col'>-1.8722</td>
+<td class='mse-col'>3.20e-04</td>
+<td class='nll-col'>-3.7604</td>
+<td class='mse-col col-worst'>3.84e-05</td>
+<td class='nll-col'>-4.2014</td>
+<td class='mse-col'>5.47e-06</td>
+</tr>
+<tr class=''><td>32</td>
+<td class='nll-col'>-2.1555</td>
+<td class='mse-col'>2.32e-04</td>
+<td class='nll-col'>-3.8803</td>
+<td class='mse-col'>2.81e-05</td>
+<td class='nll-col'>-4.2308</td>
+<td class='mse-col'>3.80e-06</td>
+</tr>
+<tr class=''><td>64</td>
+<td class='nll-col col-best'>-3.4642</td>
+<td class='mse-col'>7.24e-05</td>
+<td class='nll-col'>-4.0670</td>
+<td class='mse-col'>1.46e-05</td>
+<td class='nll-col table-best'>-4.2700</td>
+<td class='mse-col'>2.62e-06</td>
+</tr>
+<tr class=''><td>32, 24, 18</td>
+<td class='nll-col'>-1.7932</td>
+<td class='mse-col'>2.23e-04</td>
+<td class='nll-col'>-3.7721</td>
+<td class='mse-col'>3.72e-05</td>
+<td class='nll-col'>-4.2095</td>
+<td class='mse-col'>5.99e-06</td>
+</tr>
+<tr class=''><td>64, 16</td>
+<td class='nll-col'>-1.6624</td>
+<td class='mse-col'>2.14e-04</td>
+<td class='nll-col'>-3.9086</td>
+<td class='mse-col'>2.37e-05</td>
+<td class='nll-col'>-4.2384</td>
+<td class='mse-col'>3.35e-06</td>
+</tr>
+<tr class=''><td>64, 18</td>
+<td class='nll-col'>-3.4642</td>
+<td class='mse-col'>7.24e-05</td>
+<td class='nll-col'>-4.0670</td>
+<td class='mse-col'>1.46e-05</td>
+<td class='nll-col'>-4.2700</td>
+<td class='mse-col'>2.62e-06</td>
+</tr>
+<tr class=''><td>64, 24</td>
+<td class='nll-col'>-2.8289</td>
+<td class='mse-col'>1.04e-04</td>
+<td class='nll-col'>-3.9494</td>
+<td class='mse-col'>2.17e-05</td>
+<td class='nll-col'>-4.2589</td>
+<td class='mse-col'>3.20e-06</td>
+</tr>
+<tr class=''><td>64, 32</td>
+<td class='nll-col'>-3.2157</td>
+<td class='mse-col col-best'>6.94e-05</td>
+<td class='nll-col'>-3.9823</td>
+<td class='mse-col'>1.96e-05</td>
+<td class='nll-col'>-4.2575</td>
+<td class='mse-col'>3.48e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24</td>
+<td class='nll-col'>-2.6995</td>
+<td class='mse-col'>8.07e-05</td>
+<td class='nll-col col-best'>-4.0675</td>
+<td class='mse-col col-best'>1.18e-05</td>
+<td class='nll-col'>-4.2668</td>
+<td class='mse-col table-best'>2.47e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18</td>
+<td class='nll-col'>-2.6995</td>
+<td class='mse-col'>8.07e-05</td>
+<td class='nll-col'>-4.0675</td>
+<td class='mse-col'>1.18e-05</td>
+<td class='nll-col'>-4.2668</td>
+<td class='mse-col'>2.47e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16</td>
+<td class='nll-col'>-1.8785</td>
+<td class='mse-col'>2.00e-04</td>
+<td class='nll-col'>-4.0641</td>
+<td class='mse-col'>1.24e-05</td>
+<td class='nll-col'>-4.2520</td>
+<td class='mse-col'>2.63e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8</td>
+<td class='nll-col'>-1.8046</td>
+<td class='mse-col'>2.35e-04</td>
+<td class='nll-col'>-3.8236</td>
+<td class='mse-col'>3.03e-05</td>
+<td class='nll-col col-worst'>-4.1879</td>
+<td class='mse-col col-worst'>6.66e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8, 4</td>
+<td class='nll-col'>-1.7732</td>
+<td class='mse-col'>3.08e-04</td>
+<td class='nll-col'>-3.9303</td>
+<td class='mse-col'>2.06e-05</td>
+<td class='nll-col'>-4.2397</td>
+<td class='mse-col'>2.55e-06</td>
+</tr>
+</tbody></table>
+<h2>Config: LR=0.001, WD=0.0</h2>
+<table><thead><tr><th rowspan='2'>Context</th>
+<th colspan='2'>Epoch 15</th>
+<th colspan='2'>Epoch 50</th>
+<th colspan='2'>Epoch 90</th>
+</tr><tr>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+</tr></thead><tbody>
+<tr class=''><td>Baseline</td>
+<td class='nll-col table-worst'>-1.9113</td>
+<td class='mse-col table-worst'>2.69e-05</td>
+<td class='nll-col'>-3.4855</td>
+<td class='mse-col'>4.09e-06</td>
+<td class='nll-col'>-4.1332</td>
+<td class='mse-col'>5.52e-06</td>
+</tr>
+<tr class=''><td>16</td>
+<td class='nll-col'>-2.0824</td>
+<td class='mse-col'>2.44e-06</td>
+<td class='nll-col col-worst'>-3.4243</td>
+<td class='mse-col'>2.93e-06</td>
+<td class='nll-col'>-4.1210</td>
+<td class='mse-col'>1.33e-06</td>
+</tr>
+<tr class=''><td>18</td>
+<td class='nll-col'>-1.9113</td>
+<td class='mse-col'>2.69e-05</td>
+<td class='nll-col'>-3.4855</td>
+<td class='mse-col'>4.09e-06</td>
+<td class='nll-col'>-4.1332</td>
+<td class='mse-col'>5.52e-06</td>
+</tr>
+<tr class=''><td>24</td>
+<td class='nll-col'>-2.5374</td>
+<td class='mse-col'>2.50e-06</td>
+<td class='nll-col'>-4.0319</td>
+<td class='mse-col'>3.46e-06</td>
+<td class='nll-col'>-4.2111</td>
+<td class='mse-col'>1.00e-06</td>
+</tr>
+<tr class=''><td>32</td>
+<td class='nll-col'>-3.2552</td>
+<td class='mse-col'>3.95e-06</td>
+<td class='nll-col'>-4.1320</td>
+<td class='mse-col'>3.52e-06</td>
+<td class='nll-col'>-4.2456</td>
+<td class='mse-col'>1.05e-06</td>
+</tr>
+<tr class=''><td>64</td>
+<td class='nll-col col-best'>-3.9766</td>
+<td class='mse-col'>6.94e-06</td>
+<td class='nll-col col-best'>-4.2128</td>
+<td class='mse-col'>3.46e-06</td>
+<td class='nll-col table-best'>-4.2737</td>
+<td class='mse-col'>1.05e-06</td>
+</tr>
+<tr class=''><td>32, 24, 18</td>
+<td class='nll-col'>-2.3365</td>
+<td class='mse-col'>2.67e-06</td>
+<td class='nll-col'>-3.7750</td>
+<td class='mse-col'>2.03e-06</td>
+<td class='nll-col'>-4.0968</td>
+<td class='mse-col'>3.39e-06</td>
+</tr>
+<tr class=''><td>64, 16</td>
+<td class='nll-col'>-3.3593</td>
+<td class='mse-col'>4.44e-06</td>
+<td class='nll-col'>-3.8637</td>
+<td class='mse-col'>2.02e-06</td>
+<td class='nll-col col-worst'>-4.0273</td>
+<td class='mse-col'>2.82e-06</td>
+</tr>
+<tr class=''><td>64, 18</td>
+<td class='nll-col'>-3.9766</td>
+<td class='mse-col'>6.94e-06</td>
+<td class='nll-col'>-4.2128</td>
+<td class='mse-col'>3.46e-06</td>
+<td class='nll-col'>-4.2737</td>
+<td class='mse-col'>1.05e-06</td>
+</tr>
+<tr class=''><td>64, 24</td>
+<td class='nll-col'>-3.6830</td>
+<td class='mse-col'>4.12e-06</td>
+<td class='nll-col'>-4.0612</td>
+<td class='mse-col'>2.02e-06</td>
+<td class='nll-col'>-4.1146</td>
+<td class='mse-col'>2.81e-06</td>
+</tr>
+<tr class=''><td>64, 32</td>
+<td class='nll-col'>-3.9083</td>
+<td class='mse-col'>3.61e-06</td>
+<td class='nll-col'>-4.1542</td>
+<td class='mse-col'>2.35e-06</td>
+<td class='nll-col'>-4.1879</td>
+<td class='mse-col'>2.28e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24</td>
+<td class='nll-col'>-3.4046</td>
+<td class='mse-col'>2.31e-06</td>
+<td class='nll-col'>-4.1388</td>
+<td class='mse-col'>3.11e-06</td>
+<td class='nll-col'>-4.2530</td>
+<td class='mse-col table-best'>8.51e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18</td>
+<td class='nll-col'>-3.4046</td>
+<td class='mse-col'>2.31e-06</td>
+<td class='nll-col'>-4.1388</td>
+<td class='mse-col'>3.11e-06</td>
+<td class='nll-col'>-4.2530</td>
+<td class='mse-col'>8.51e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16</td>
+<td class='nll-col'>-3.2922</td>
+<td class='mse-col col-best'>2.15e-06</td>
+<td class='nll-col'>-4.0575</td>
+<td class='mse-col col-worst'>4.52e-06</td>
+<td class='nll-col'>-4.1460</td>
+<td class='mse-col'>8.98e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8</td>
+<td class='nll-col'>-3.2623</td>
+<td class='mse-col'>3.83e-06</td>
+<td class='nll-col'>-3.8214</td>
+<td class='mse-col'>2.60e-06</td>
+<td class='nll-col'>-4.0693</td>
+<td class='mse-col col-worst'>6.45e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8, 4</td>
+<td class='nll-col'>-2.8573</td>
+<td class='mse-col'>3.48e-06</td>
+<td class='nll-col'>-3.9520</td>
+<td class='mse-col col-best'>1.75e-06</td>
+<td class='nll-col'>-4.1450</td>
+<td class='mse-col'>3.62e-06</td>
+</tr>
+</tbody></table>
+<h2>Config: LR=0.001, WD=0.01</h2>
+<table><thead><tr><th rowspan='2'>Context</th>
+<th colspan='2'>Epoch 15</th>
+<th colspan='2'>Epoch 50</th>
+<th colspan='2'>Epoch 90</th>
+</tr><tr>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+</tr></thead><tbody>
+<tr class=''><td>Baseline</td>
+<td class='nll-col'>-2.2552</td>
+<td class='mse-col table-worst'>3.37e-04</td>
+<td class='nll-col table-worst'>-1.8710</td>
+<td class='mse-col col-worst'>2.62e-04</td>
+<td class='nll-col'>-3.8585</td>
+<td class='mse-col'>1.85e-05</td>
+</tr>
+<tr class=''><td>16</td>
+<td class='nll-col col-worst'>-1.9597</td>
+<td class='mse-col'>2.91e-04</td>
+<td class='nll-col'>-2.3323</td>
+<td class='mse-col'>2.33e-04</td>
+<td class='nll-col'>-3.7032</td>
+<td class='mse-col'>3.23e-05</td>
+</tr>
+<tr class=''><td>18</td>
+<td class='nll-col'>-2.2552</td>
+<td class='mse-col'>3.37e-04</td>
+<td class='nll-col'>-1.8710</td>
+<td class='mse-col'>2.62e-04</td>
+<td class='nll-col'>-3.8585</td>
+<td class='mse-col'>1.85e-05</td>
+</tr>
+<tr class=''><td>24</td>
+<td class='nll-col'>-2.8217</td>
+<td class='mse-col'>1.95e-04</td>
+<td class='nll-col'>-1.9911</td>
+<td class='mse-col'>2.10e-04</td>
+<td class='nll-col'>-3.6935</td>
+<td class='mse-col'>3.61e-05</td>
+</tr>
+<tr class=''><td>32</td>
+<td class='nll-col'>-3.3786</td>
+<td class='mse-col'>8.24e-05</td>
+<td class='nll-col'>-2.3852</td>
+<td class='mse-col'>1.50e-04</td>
+<td class='nll-col'>-3.8311</td>
+<td class='mse-col'>2.54e-05</td>
+</tr>
+<tr class=''><td>64</td>
+<td class='nll-col'>-3.5193</td>
+<td class='mse-col'>4.24e-05</td>
+<td class='nll-col'>-3.3099</td>
+<td class='mse-col'>7.74e-05</td>
+<td class='nll-col'>-3.8987</td>
+<td class='mse-col'>1.90e-05</td>
+</tr>
+<tr class=''><td>32, 24, 18</td>
+<td class='nll-col'>-3.0597</td>
+<td class='mse-col'>7.42e-05</td>
+<td class='nll-col'>-2.8137</td>
+<td class='mse-col'>1.52e-04</td>
+<td class='nll-col col-worst'>-3.5725</td>
+<td class='mse-col col-worst'>4.68e-05</td>
+</tr>
+<tr class=''><td>64, 16</td>
+<td class='nll-col'>-3.0019</td>
+<td class='mse-col'>5.42e-05</td>
+<td class='nll-col'>-3.1118</td>
+<td class='mse-col'>1.23e-04</td>
+<td class='nll-col'>-3.7303</td>
+<td class='mse-col'>2.90e-05</td>
+</tr>
+<tr class=''><td>64, 18</td>
+<td class='nll-col'>-3.5193</td>
+<td class='mse-col'>4.24e-05</td>
+<td class='nll-col'>-3.3099</td>
+<td class='mse-col'>7.74e-05</td>
+<td class='nll-col'>-3.8987</td>
+<td class='mse-col'>1.90e-05</td>
+</tr>
+<tr class=''><td>64, 24</td>
+<td class='nll-col'>-3.4316</td>
+<td class='mse-col col-best'>2.05e-05</td>
+<td class='nll-col'>-3.3193</td>
+<td class='mse-col'>8.11e-05</td>
+<td class='nll-col'>-3.7601</td>
+<td class='mse-col'>2.89e-05</td>
+</tr>
+<tr class=''><td>64, 32</td>
+<td class='nll-col col-best'>-3.6437</td>
+<td class='mse-col'>2.26e-05</td>
+<td class='nll-col'>-3.3066</td>
+<td class='mse-col'>7.35e-05</td>
+<td class='nll-col'>-3.7588</td>
+<td class='mse-col'>3.11e-05</td>
+</tr>
+<tr class=''><td>64, 32, 24</td>
+<td class='nll-col'>-3.2623</td>
+<td class='mse-col'>2.31e-05</td>
+<td class='nll-col col-best'>-3.5778</td>
+<td class='mse-col col-best'>4.53e-05</td>
+<td class='nll-col'>-3.8321</td>
+<td class='mse-col'>2.07e-05</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18</td>
+<td class='nll-col'>-3.2623</td>
+<td class='mse-col'>2.31e-05</td>
+<td class='nll-col'>-3.5778</td>
+<td class='mse-col'>4.53e-05</td>
+<td class='nll-col'>-3.8321</td>
+<td class='mse-col'>2.07e-05</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16</td>
+<td class='nll-col'>-3.1225</td>
+<td class='mse-col'>4.03e-05</td>
+<td class='nll-col'>-3.4906</td>
+<td class='mse-col'>6.29e-05</td>
+<td class='nll-col table-best'>-3.9246</td>
+<td class='mse-col table-best'>1.21e-05</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8</td>
+<td class='nll-col'>-2.4795</td>
+<td class='mse-col'>1.26e-04</td>
+<td class='nll-col'>-2.9343</td>
+<td class='mse-col'>1.68e-04</td>
+<td class='nll-col'>-3.7851</td>
+<td class='mse-col'>2.32e-05</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8, 4</td>
+<td class='nll-col'>-2.2177</td>
+<td class='mse-col'>2.41e-04</td>
+<td class='nll-col'>-2.8671</td>
+<td class='mse-col'>1.96e-04</td>
+<td class='nll-col'>-3.8598</td>
+<td class='mse-col'>1.45e-05</td>
+</tr>
+</tbody></table>
+<h2>Config: LR=0.003, WD=0.0</h2>
+<table><thead><tr><th rowspan='2'>Context</th>
+<th colspan='2'>Epoch 15</th>
+<th colspan='2'>Epoch 50</th>
+<th colspan='2'>Epoch 90</th>
+</tr><tr>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+</tr></thead><tbody>
+<tr class=''><td>Baseline</td>
+<td class='nll-col'>-2.5307</td>
+<td class='mse-col table-worst'>2.98e-05</td>
+<td class='nll-col'>-4.0962</td>
+<td class='mse-col'>3.17e-06</td>
+<td class='nll-col'>-4.2831</td>
+<td class='mse-col'>1.47e-06</td>
+</tr>
+<tr class=''><td>16</td>
+<td class='nll-col table-worst'>-2.2639</td>
+<td class='mse-col'>2.62e-05</td>
+<td class='nll-col col-worst'>-4.0136</td>
+<td class='mse-col'>5.29e-06</td>
+<td class='nll-col col-worst'>-4.1906</td>
+<td class='mse-col col-worst'>6.40e-06</td>
+</tr>
+<tr class=''><td>18</td>
+<td class='nll-col'>-2.5307</td>
+<td class='mse-col'>2.98e-05</td>
+<td class='nll-col'>-4.0962</td>
+<td class='mse-col'>3.17e-06</td>
+<td class='nll-col'>-4.2831</td>
+<td class='mse-col'>1.47e-06</td>
+</tr>
+<tr class=''><td>24</td>
+<td class='nll-col'>-2.7116</td>
+<td class='mse-col'>1.93e-05</td>
+<td class='nll-col'>-4.0927</td>
+<td class='mse-col'>5.23e-06</td>
+<td class='nll-col'>-4.2200</td>
+<td class='mse-col'>4.62e-06</td>
+</tr>
+<tr class=''><td>32</td>
+<td class='nll-col'>-3.7535</td>
+<td class='mse-col'>1.26e-05</td>
+<td class='nll-col'>-4.1830</td>
+<td class='mse-col'>4.83e-06</td>
+<td class='nll-col'>-4.2505</td>
+<td class='mse-col'>4.11e-06</td>
+</tr>
+<tr class=''><td>64</td>
+<td class='nll-col col-best'>-3.9300</td>
+<td class='mse-col'>1.11e-05</td>
+<td class='nll-col'>-4.2303</td>
+<td class='mse-col'>4.08e-06</td>
+<td class='nll-col'>-4.2832</td>
+<td class='mse-col'>2.63e-06</td>
+</tr>
+<tr class=''><td>32, 24, 18</td>
+<td class='nll-col'>-2.7078</td>
+<td class='mse-col'>4.95e-06</td>
+<td class='nll-col'>-4.1234</td>
+<td class='mse-col'>3.33e-06</td>
+<td class='nll-col'>-4.2836</td>
+<td class='mse-col'>1.51e-06</td>
+</tr>
+<tr class=''><td>64, 16</td>
+<td class='nll-col'>-3.6506</td>
+<td class='mse-col'>5.25e-06</td>
+<td class='nll-col'>-4.1764</td>
+<td class='mse-col'>3.21e-06</td>
+<td class='nll-col'>-4.2641</td>
+<td class='mse-col'>1.80e-06</td>
+</tr>
+<tr class=''><td>64, 18</td>
+<td class='nll-col'>-3.9300</td>
+<td class='mse-col'>1.11e-05</td>
+<td class='nll-col'>-4.2303</td>
+<td class='mse-col'>4.08e-06</td>
+<td class='nll-col'>-4.2832</td>
+<td class='mse-col'>2.63e-06</td>
+</tr>
+<tr class=''><td>64, 24</td>
+<td class='nll-col'>-3.7079</td>
+<td class='mse-col'>9.51e-06</td>
+<td class='nll-col'>-4.1972</td>
+<td class='mse-col'>3.41e-06</td>
+<td class='nll-col'>-4.2858</td>
+<td class='mse-col'>1.61e-06</td>
+</tr>
+<tr class='global-best-row'><td>64, 32</td>
+<td class='nll-col'>-3.9058</td>
+<td class='mse-col'>8.95e-06</td>
+<td class='nll-col col-best'>-4.2346</td>
+<td class='mse-col'>3.25e-06</td>
+<td class='nll-col global-best table-best'>-4.3009</td>
+<td class='mse-col table-best'>1.39e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24</td>
+<td class='nll-col'>-3.4402</td>
+<td class='mse-col'>9.08e-06</td>
+<td class='nll-col'>-4.1437</td>
+<td class='mse-col'>4.55e-06</td>
+<td class='nll-col'>-4.2790</td>
+<td class='mse-col'>2.51e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18</td>
+<td class='nll-col'>-3.4402</td>
+<td class='mse-col'>9.08e-06</td>
+<td class='nll-col'>-4.1437</td>
+<td class='mse-col'>4.55e-06</td>
+<td class='nll-col'>-4.2790</td>
+<td class='mse-col'>2.51e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16</td>
+<td class='nll-col'>-3.5471</td>
+<td class='mse-col col-best'>4.93e-06</td>
+<td class='nll-col'>-4.1416</td>
+<td class='mse-col col-worst'>6.50e-06</td>
+<td class='nll-col'>-4.2345</td>
+<td class='mse-col'>4.42e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8</td>
+<td class='nll-col'>-3.2829</td>
+<td class='mse-col'>8.93e-06</td>
+<td class='nll-col'>-4.1341</td>
+<td class='mse-col'>4.31e-06</td>
+<td class='nll-col'>-4.2604</td>
+<td class='mse-col'>1.64e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8, 4</td>
+<td class='nll-col'>-2.8838</td>
+<td class='mse-col'>1.29e-05</td>
+<td class='nll-col'>-4.1272</td>
+<td class='mse-col col-best'>2.90e-06</td>
+<td class='nll-col'>-4.2626</td>
+<td class='mse-col'>1.84e-06</td>
+</tr>
+</tbody></table>
+<h2>Config: LR=0.003, WD=0.01</h2>
+<table><thead><tr><th rowspan='2'>Context</th>
+<th colspan='2'>Epoch 15</th>
+<th colspan='2'>Epoch 50</th>
+<th colspan='2'>Epoch 90</th>
+</tr><tr>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+</tr></thead><tbody>
+<tr class='global-worst-row'><td>Baseline</td>
+<td class='nll-col'>-2.5254</td>
+<td class='mse-col col-worst'>5.17e-04</td>
+<td class='nll-col global-worst table-worst'>-0.9617</td>
+<td class='mse-col table-worst'>6.45e-04</td>
+<td class='nll-col'>-3.2318</td>
+<td class='mse-col'>9.80e-05</td>
+</tr>
+<tr class=''><td>16</td>
+<td class='nll-col'>-2.7797</td>
+<td class='mse-col'>1.82e-04</td>
+<td class='nll-col'>-2.2209</td>
+<td class='mse-col'>4.12e-04</td>
+<td class='nll-col'>-3.1522</td>
+<td class='mse-col'>1.21e-04</td>
+</tr>
+<tr class=''><td>18</td>
+<td class='nll-col'>-2.5254</td>
+<td class='mse-col'>5.17e-04</td>
+<td class='nll-col'>-0.9617</td>
+<td class='mse-col'>6.45e-04</td>
+<td class='nll-col'>-3.2318</td>
+<td class='mse-col'>9.80e-05</td>
+</tr>
+<tr class=''><td>24</td>
+<td class='nll-col'>-3.0110</td>
+<td class='mse-col'>1.38e-04</td>
+<td class='nll-col'>-2.1484</td>
+<td class='mse-col'>3.66e-04</td>
+<td class='nll-col'>-3.0438</td>
+<td class='mse-col'>1.43e-04</td>
+</tr>
+<tr class=''><td>32</td>
+<td class='nll-col col-best'>-3.1241</td>
+<td class='mse-col col-best'>6.26e-05</td>
+<td class='nll-col'>-2.8170</td>
+<td class='mse-col'>1.96e-04</td>
+<td class='nll-col'>-3.2355</td>
+<td class='mse-col'>1.03e-04</td>
+</tr>
+<tr class=''><td>64</td>
+<td class='nll-col'>-3.1052</td>
+<td class='mse-col'>6.78e-05</td>
+<td class='nll-col'>-3.1459</td>
+<td class='mse-col'>1.20e-04</td>
+<td class='nll-col table-best'>-3.4451</td>
+<td class='mse-col'>5.97e-05</td>
+</tr>
+<tr class=''><td>32, 24, 18</td>
+<td class='nll-col'>-3.1009</td>
+<td class='mse-col'>7.77e-05</td>
+<td class='nll-col'>-2.6089</td>
+<td class='mse-col'>2.58e-04</td>
+<td class='nll-col col-worst'>-3.0298</td>
+<td class='mse-col col-worst'>1.44e-04</td>
+</tr>
+<tr class=''><td>64, 16</td>
+<td class='nll-col'>-2.9562</td>
+<td class='mse-col'>1.00e-04</td>
+<td class='nll-col'>-3.0776</td>
+<td class='mse-col'>1.47e-04</td>
+<td class='nll-col'>-3.2916</td>
+<td class='mse-col'>7.94e-05</td>
+</tr>
+<tr class=''><td>64, 18</td>
+<td class='nll-col'>-3.1052</td>
+<td class='mse-col'>6.78e-05</td>
+<td class='nll-col'>-3.1459</td>
+<td class='mse-col'>1.20e-04</td>
+<td class='nll-col'>-3.4451</td>
+<td class='mse-col'>5.97e-05</td>
+</tr>
+<tr class=''><td>64, 24</td>
+<td class='nll-col'>-3.0194</td>
+<td class='mse-col'>9.91e-05</td>
+<td class='nll-col'>-3.3087</td>
+<td class='mse-col'>7.72e-05</td>
+<td class='nll-col'>-3.3700</td>
+<td class='mse-col'>6.14e-05</td>
+</tr>
+<tr class=''><td>64, 32</td>
+<td class='nll-col'>-3.0816</td>
+<td class='mse-col'>8.55e-05</td>
+<td class='nll-col col-best'>-3.3717</td>
+<td class='mse-col'>6.75e-05</td>
+<td class='nll-col'>-3.3994</td>
+<td class='mse-col'>6.41e-05</td>
+</tr>
+<tr class=''><td>64, 32, 24</td>
+<td class='nll-col'>-2.9492</td>
+<td class='mse-col'>9.69e-05</td>
+<td class='nll-col'>-3.3409</td>
+<td class='mse-col col-best'>5.01e-05</td>
+<td class='nll-col'>-3.4065</td>
+<td class='mse-col'>5.09e-05</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18</td>
+<td class='nll-col'>-2.9492</td>
+<td class='mse-col'>9.69e-05</td>
+<td class='nll-col'>-3.3409</td>
+<td class='mse-col'>5.01e-05</td>
+<td class='nll-col'>-3.4065</td>
+<td class='mse-col'>5.09e-05</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16</td>
+<td class='nll-col'>-2.9105</td>
+<td class='mse-col'>8.43e-05</td>
+<td class='nll-col'>-3.3075</td>
+<td class='mse-col'>5.31e-05</td>
+<td class='nll-col'>-3.4417</td>
+<td class='mse-col table-best'>2.74e-05</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8</td>
+<td class='nll-col'>-2.5337</td>
+<td class='mse-col'>1.06e-04</td>
+<td class='nll-col'>-2.7659</td>
+<td class='mse-col'>3.12e-04</td>
+<td class='nll-col'>-3.1789</td>
+<td class='mse-col'>9.71e-05</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8, 4</td>
+<td class='nll-col col-worst'>-2.4469</td>
+<td class='mse-col'>2.30e-04</td>
+<td class='nll-col'>-2.4444</td>
+<td class='mse-col'>4.60e-04</td>
+<td class='nll-col'>-3.2004</td>
+<td class='mse-col'>9.88e-05</td>
+</tr>
+</tbody></table>
+<h2>Config: LR=1e-05, WD=0.0</h2>
+<table><thead><tr><th rowspan='2'>Context</th>
+<th colspan='2'>Epoch 15</th>
+<th colspan='2'>Epoch 50</th>
+<th colspan='2'>Epoch 90</th>
+</tr><tr>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+</tr></thead><tbody>
+<tr class=''><td>Baseline</td>
+<td class='nll-col table-worst'>-1.3333</td>
+<td class='mse-col table-worst'>8.57e-04</td>
+<td class='nll-col'>-3.5092</td>
+<td class='mse-col col-best'>1.21e-06</td>
+<td class='nll-col'>-4.2431</td>
+<td class='mse-col'>5.97e-07</td>
+</tr>
+<tr class=''><td>16</td>
+<td class='nll-col'>-1.4070</td>
+<td class='mse-col'>5.55e-04</td>
+<td class='nll-col col-worst'>-3.2157</td>
+<td class='mse-col'>1.86e-06</td>
+<td class='nll-col'>-4.2359</td>
+<td class='mse-col'>1.82e-06</td>
+</tr>
+<tr class=''><td>18</td>
+<td class='nll-col'>-1.3333</td>
+<td class='mse-col'>8.57e-04</td>
+<td class='nll-col'>-3.5092</td>
+<td class='mse-col'>1.21e-06</td>
+<td class='nll-col'>-4.2431</td>
+<td class='mse-col'>5.97e-07</td>
+</tr>
+<tr class=''><td>24</td>
+<td class='nll-col'>-1.5833</td>
+<td class='mse-col'>4.54e-04</td>
+<td class='nll-col'>-3.4622</td>
+<td class='mse-col'>1.22e-05</td>
+<td class='nll-col'>-4.2630</td>
+<td class='mse-col'>5.85e-07</td>
+</tr>
+<tr class=''><td>32</td>
+<td class='nll-col'>-1.8105</td>
+<td class='mse-col'>3.29e-04</td>
+<td class='nll-col'>-3.4202</td>
+<td class='mse-col col-worst'>2.76e-05</td>
+<td class='nll-col'>-4.2033</td>
+<td class='mse-col'>1.95e-06</td>
+</tr>
+<tr class=''><td>64</td>
+<td class='nll-col'>-2.0820</td>
+<td class='mse-col'>1.73e-04</td>
+<td class='nll-col'>-3.8682</td>
+<td class='mse-col'>2.25e-05</td>
+<td class='nll-col col-worst'>-4.1601</td>
+<td class='mse-col col-worst'>5.83e-06</td>
+</tr>
+<tr class=''><td>32, 24, 18</td>
+<td class='nll-col'>-1.6239</td>
+<td class='mse-col'>3.00e-05</td>
+<td class='nll-col'>-3.3570</td>
+<td class='mse-col'>6.92e-06</td>
+<td class='nll-col'>-4.2362</td>
+<td class='mse-col'>1.53e-06</td>
+</tr>
+<tr class=''><td>64, 16</td>
+<td class='nll-col'>-1.8116</td>
+<td class='mse-col'>4.24e-06</td>
+<td class='nll-col'>-3.6529</td>
+<td class='mse-col'>4.37e-06</td>
+<td class='nll-col'>-4.2527</td>
+<td class='mse-col'>1.21e-06</td>
+</tr>
+<tr class=''><td>64, 18</td>
+<td class='nll-col'>-2.0820</td>
+<td class='mse-col'>1.73e-04</td>
+<td class='nll-col'>-3.8682</td>
+<td class='mse-col'>2.25e-05</td>
+<td class='nll-col'>-4.1601</td>
+<td class='mse-col'>5.83e-06</td>
+</tr>
+<tr class=''><td>64, 24</td>
+<td class='nll-col'>-1.9684</td>
+<td class='mse-col'>8.66e-06</td>
+<td class='nll-col'>-3.8390</td>
+<td class='mse-col'>8.66e-06</td>
+<td class='nll-col'>-4.2615</td>
+<td class='mse-col'>1.11e-06</td>
+</tr>
+<tr class=''><td>64, 32</td>
+<td class='nll-col col-best'>-2.3186</td>
+<td class='mse-col'>3.78e-05</td>
+<td class='nll-col'>-3.9627</td>
+<td class='mse-col'>1.28e-05</td>
+<td class='nll-col'>-4.2504</td>
+<td class='mse-col'>1.26e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24</td>
+<td class='nll-col'>-2.0649</td>
+<td class='mse-col'>1.19e-05</td>
+<td class='nll-col'>-3.8651</td>
+<td class='mse-col'>5.54e-06</td>
+<td class='nll-col'>-4.2278</td>
+<td class='mse-col'>1.36e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18</td>
+<td class='nll-col'>-2.0649</td>
+<td class='mse-col'>1.19e-05</td>
+<td class='nll-col'>-3.8651</td>
+<td class='mse-col'>5.54e-06</td>
+<td class='nll-col'>-4.2278</td>
+<td class='mse-col'>1.36e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16</td>
+<td class='nll-col'>-2.0190</td>
+<td class='mse-col'>6.86e-05</td>
+<td class='nll-col'>-3.6155</td>
+<td class='mse-col'>4.54e-06</td>
+<td class='nll-col'>-4.2285</td>
+<td class='mse-col table-best'>3.94e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8</td>
+<td class='nll-col'>-1.9865</td>
+<td class='mse-col'>1.11e-05</td>
+<td class='nll-col col-best'>-3.9874</td>
+<td class='mse-col'>1.23e-06</td>
+<td class='nll-col table-best'>-4.2643</td>
+<td class='mse-col'>9.97e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8, 4</td>
+<td class='nll-col'>-1.4546</td>
+<td class='mse-col col-best'>3.98e-06</td>
+<td class='nll-col'>-3.5284</td>
+<td class='mse-col'>6.65e-06</td>
+<td class='nll-col'>-4.1832</td>
+<td class='mse-col'>4.96e-06</td>
+</tr>
+</tbody></table>
+<h2>Config: LR=1e-05, WD=0.01</h2>
+<table><thead><tr><th rowspan='2'>Context</th>
+<th colspan='2'>Epoch 15</th>
+<th colspan='2'>Epoch 50</th>
+<th colspan='2'>Epoch 90</th>
+</tr><tr>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+</tr></thead><tbody>
+<tr class=''><td>Baseline</td>
+<td class='nll-col'>-1.5049</td>
+<td class='mse-col'>3.32e-05</td>
+<td class='nll-col'>-3.0835</td>
+<td class='mse-col'>5.69e-06</td>
+<td class='nll-col'>-4.2271</td>
+<td class='mse-col table-best'>2.22e-07</td>
+</tr>
+<tr class=''><td>16</td>
+<td class='nll-col'>-1.4012</td>
+<td class='mse-col'>2.03e-05</td>
+<td class='nll-col col-worst'>-2.8450</td>
+<td class='mse-col'>5.64e-06</td>
+<td class='nll-col'>-4.2195</td>
+<td class='mse-col'>5.04e-07</td>
+</tr>
+<tr class=''><td>18</td>
+<td class='nll-col'>-1.5049</td>
+<td class='mse-col'>3.32e-05</td>
+<td class='nll-col'>-3.0835</td>
+<td class='mse-col'>5.69e-06</td>
+<td class='nll-col'>-4.2271</td>
+<td class='mse-col'>2.22e-07</td>
+</tr>
+<tr class=''><td>24</td>
+<td class='nll-col'>-1.6139</td>
+<td class='mse-col'>2.58e-05</td>
+<td class='nll-col'>-3.0572</td>
+<td class='mse-col'>1.33e-05</td>
+<td class='nll-col'>-4.2415</td>
+<td class='mse-col'>3.28e-07</td>
+</tr>
+<tr class=''><td>32</td>
+<td class='nll-col'>-1.9006</td>
+<td class='mse-col'>1.33e-05</td>
+<td class='nll-col'>-3.4401</td>
+<td class='mse-col'>1.01e-05</td>
+<td class='nll-col'>-4.2379</td>
+<td class='mse-col'>4.93e-07</td>
+</tr>
+<tr class=''><td>64</td>
+<td class='nll-col'>-2.2090</td>
+<td class='mse-col'>3.48e-05</td>
+<td class='nll-col col-best'>-3.8097</td>
+<td class='mse-col col-worst'>1.66e-05</td>
+<td class='nll-col col-worst'>-4.1378</td>
+<td class='mse-col col-worst'>6.84e-06</td>
+</tr>
+<tr class=''><td>32, 24, 18</td>
+<td class='nll-col'>-1.5746</td>
+<td class='mse-col'>3.84e-05</td>
+<td class='nll-col'>-3.4730</td>
+<td class='mse-col'>4.88e-06</td>
+<td class='nll-col table-best'>-4.2815</td>
+<td class='mse-col'>7.26e-07</td>
+</tr>
+<tr class=''><td>64, 16</td>
+<td class='nll-col'>-1.7040</td>
+<td class='mse-col'>9.30e-05</td>
+<td class='nll-col'>-3.1310</td>
+<td class='mse-col'>5.66e-06</td>
+<td class='nll-col'>-4.2577</td>
+<td class='mse-col'>6.45e-07</td>
+</tr>
+<tr class=''><td>64, 18</td>
+<td class='nll-col'>-2.2090</td>
+<td class='mse-col'>3.48e-05</td>
+<td class='nll-col'>-3.8097</td>
+<td class='mse-col'>1.66e-05</td>
+<td class='nll-col'>-4.1378</td>
+<td class='mse-col'>6.84e-06</td>
+</tr>
+<tr class=''><td>64, 24</td>
+<td class='nll-col'>-2.0218</td>
+<td class='mse-col'>5.26e-05</td>
+<td class='nll-col'>-3.4751</td>
+<td class='mse-col'>8.92e-06</td>
+<td class='nll-col'>-4.2682</td>
+<td class='mse-col'>1.03e-06</td>
+</tr>
+<tr class=''><td>64, 32</td>
+<td class='nll-col col-best'>-2.3024</td>
+<td class='mse-col'>6.94e-06</td>
+<td class='nll-col'>-3.7238</td>
+<td class='mse-col'>1.18e-05</td>
+<td class='nll-col'>-4.2465</td>
+<td class='mse-col'>2.08e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24</td>
+<td class='nll-col'>-2.0111</td>
+<td class='mse-col'>3.23e-05</td>
+<td class='nll-col'>-3.5422</td>
+<td class='mse-col'>3.69e-06</td>
+<td class='nll-col'>-4.2312</td>
+<td class='mse-col'>4.49e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18</td>
+<td class='nll-col'>-2.0111</td>
+<td class='mse-col'>3.23e-05</td>
+<td class='nll-col'>-3.5422</td>
+<td class='mse-col'>3.69e-06</td>
+<td class='nll-col'>-4.2312</td>
+<td class='mse-col'>4.49e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16</td>
+<td class='nll-col'>-1.9773</td>
+<td class='mse-col col-best'>6.77e-06</td>
+<td class='nll-col'>-3.3048</td>
+<td class='mse-col'>3.51e-06</td>
+<td class='nll-col'>-4.1381</td>
+<td class='mse-col'>2.30e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8</td>
+<td class='nll-col'>-1.8018</td>
+<td class='mse-col'>7.63e-05</td>
+<td class='nll-col'>-3.5978</td>
+<td class='mse-col col-best'>1.38e-06</td>
+<td class='nll-col'>-4.2427</td>
+<td class='mse-col'>4.53e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8, 4</td>
+<td class='nll-col table-worst'>-1.3407</td>
+<td class='mse-col table-worst'>1.41e-04</td>
+<td class='nll-col'>-3.4298</td>
+<td class='mse-col'>5.35e-06</td>
+<td class='nll-col'>-4.1854</td>
+<td class='mse-col'>3.74e-06</td>
+</tr>
+</tbody></table>
+<h2>Config: LR=3e-05, WD=0.0</h2>
+<table><thead><tr><th rowspan='2'>Context</th>
+<th colspan='2'>Epoch 15</th>
+<th colspan='2'>Epoch 50</th>
+<th colspan='2'>Epoch 90</th>
+</tr><tr>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+</tr></thead><tbody>
+<tr class=''><td>Baseline</td>
+<td class='nll-col'>-2.1190</td>
+<td class='mse-col'>1.55e-04</td>
+<td class='nll-col'>-4.0206</td>
+<td class='mse-col'>3.89e-06</td>
+<td class='nll-col table-best'>-4.2236</td>
+<td class='mse-col'>4.21e-07</td>
+</tr>
+<tr class=''><td>16</td>
+<td class='nll-col table-worst'>-1.6737</td>
+<td class='mse-col table-worst'>2.83e-04</td>
+<td class='nll-col'>-3.1972</td>
+<td class='mse-col'>3.48e-06</td>
+<td class='nll-col'>-3.9770</td>
+<td class='mse-col col-worst'>4.35e-06</td>
+</tr>
+<tr class=''><td>18</td>
+<td class='nll-col'>-2.1190</td>
+<td class='mse-col'>1.55e-04</td>
+<td class='nll-col'>-4.0206</td>
+<td class='mse-col'>3.89e-06</td>
+<td class='nll-col'>-4.2236</td>
+<td class='mse-col'>4.21e-07</td>
+</tr>
+<tr class=''><td>24</td>
+<td class='nll-col'>-1.7330</td>
+<td class='mse-col'>1.82e-04</td>
+<td class='nll-col col-worst'>-3.1254</td>
+<td class='mse-col'>4.58e-06</td>
+<td class='nll-col'>-3.8019</td>
+<td class='mse-col'>1.31e-07</td>
+</tr>
+<tr class=''><td>32</td>
+<td class='nll-col'>-2.1596</td>
+<td class='mse-col'>1.45e-04</td>
+<td class='nll-col'>-3.8559</td>
+<td class='mse-col col-best'>6.56e-07</td>
+<td class='nll-col'>-4.1761</td>
+<td class='mse-col'>9.28e-08</td>
+</tr>
+<tr class=''><td>64</td>
+<td class='nll-col'>-2.3851</td>
+<td class='mse-col'>5.59e-05</td>
+<td class='nll-col'>-4.0557</td>
+<td class='mse-col'>6.68e-07</td>
+<td class='nll-col'>-4.1165</td>
+<td class='mse-col'>1.04e-06</td>
+</tr>
+<tr class=''><td>32, 24, 18</td>
+<td class='nll-col'>-1.7463</td>
+<td class='mse-col'>1.29e-04</td>
+<td class='nll-col'>-3.6306</td>
+<td class='mse-col'>1.81e-06</td>
+<td class='nll-col'>-4.1543</td>
+<td class='mse-col'>4.01e-07</td>
+</tr>
+<tr class=''><td>64, 16</td>
+<td class='nll-col'>-2.1818</td>
+<td class='mse-col col-best'>2.89e-06</td>
+<td class='nll-col'>-3.7677</td>
+<td class='mse-col'>8.87e-06</td>
+<td class='nll-col'>-4.1177</td>
+<td class='mse-col'>8.79e-07</td>
+</tr>
+<tr class=''><td>64, 18</td>
+<td class='nll-col'>-2.3851</td>
+<td class='mse-col'>5.59e-05</td>
+<td class='nll-col'>-4.0557</td>
+<td class='mse-col'>6.68e-07</td>
+<td class='nll-col'>-4.1165</td>
+<td class='mse-col'>1.04e-06</td>
+</tr>
+<tr class=''><td>64, 24</td>
+<td class='nll-col'>-2.3322</td>
+<td class='mse-col'>9.45e-06</td>
+<td class='nll-col'>-3.9265</td>
+<td class='mse-col'>2.59e-06</td>
+<td class='nll-col'>-4.1305</td>
+<td class='mse-col'>2.16e-07</td>
+</tr>
+<tr class=''><td>64, 32</td>
+<td class='nll-col col-best'>-2.6160</td>
+<td class='mse-col'>3.76e-06</td>
+<td class='nll-col'>-4.0548</td>
+<td class='mse-col'>3.77e-06</td>
+<td class='nll-col'>-4.1725</td>
+<td class='mse-col'>4.48e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24</td>
+<td class='nll-col'>-2.4104</td>
+<td class='mse-col'>5.19e-06</td>
+<td class='nll-col'>-4.0308</td>
+<td class='mse-col'>1.76e-06</td>
+<td class='nll-col'>-4.1692</td>
+<td class='mse-col'>5.41e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18</td>
+<td class='nll-col'>-2.4104</td>
+<td class='mse-col'>5.19e-06</td>
+<td class='nll-col'>-4.0308</td>
+<td class='mse-col'>1.76e-06</td>
+<td class='nll-col'>-4.1692</td>
+<td class='mse-col'>5.41e-07</td>
+</tr>
+<tr class='global-best-row'><td>64, 32, 24, 18, 16</td>
+<td class='nll-col'>-2.4807</td>
+<td class='mse-col'>2.17e-05</td>
+<td class='nll-col'>-3.8171</td>
+<td class='mse-col'>4.95e-06</td>
+<td class='nll-col col-worst'>-3.6788</td>
+<td class='mse-col global-best table-best'>8.30e-08</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8</td>
+<td class='nll-col'>-2.3996</td>
+<td class='mse-col'>8.60e-06</td>
+<td class='nll-col col-best'>-4.0582</td>
+<td class='mse-col'>6.10e-06</td>
+<td class='nll-col'>-4.1767</td>
+<td class='mse-col'>2.90e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8, 4</td>
+<td class='nll-col'>-1.8201</td>
+<td class='mse-col'>9.79e-06</td>
+<td class='nll-col'>-3.8309</td>
+<td class='mse-col col-worst'>2.10e-05</td>
+<td class='nll-col'>-4.1547</td>
+<td class='mse-col'>1.65e-06</td>
+</tr>
+</tbody></table>
+<h2>Config: LR=3e-05, WD=0.01</h2>
+<table><thead><tr><th rowspan='2'>Context</th>
+<th colspan='2'>Epoch 15</th>
+<th colspan='2'>Epoch 50</th>
+<th colspan='2'>Epoch 90</th>
+</tr><tr>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+<th>NLL</th><th>MSE</th>
+</tr></thead><tbody>
+<tr class=''><td>Baseline</td>
+<td class='nll-col'>-2.1534</td>
+<td class='mse-col'>1.01e-04</td>
+<td class='nll-col'>-4.1010</td>
+<td class='mse-col'>4.61e-07</td>
+<td class='nll-col table-best'>-4.2812</td>
+<td class='mse-col'>2.31e-07</td>
+</tr>
+<tr class=''><td>16</td>
+<td class='nll-col table-worst'>-1.6777</td>
+<td class='mse-col table-worst'>1.19e-04</td>
+<td class='nll-col col-worst'>-3.3541</td>
+<td class='mse-col col-best'>4.44e-07</td>
+<td class='nll-col col-worst'>-4.1961</td>
+<td class='mse-col col-worst'>3.69e-06</td>
+</tr>
+<tr class=''><td>18</td>
+<td class='nll-col'>-2.1534</td>
+<td class='mse-col'>1.01e-04</td>
+<td class='nll-col'>-4.1010</td>
+<td class='mse-col'>4.61e-07</td>
+<td class='nll-col'>-4.2812</td>
+<td class='mse-col'>2.31e-07</td>
+</tr>
+<tr class=''><td>24</td>
+<td class='nll-col'>-1.8875</td>
+<td class='mse-col'>4.31e-05</td>
+<td class='nll-col'>-3.5367</td>
+<td class='mse-col'>1.50e-06</td>
+<td class='nll-col'>-4.2117</td>
+<td class='mse-col'>1.14e-06</td>
+</tr>
+<tr class=''><td>32</td>
+<td class='nll-col'>-2.1949</td>
+<td class='mse-col'>3.05e-05</td>
+<td class='nll-col'>-3.8624</td>
+<td class='mse-col'>3.35e-06</td>
+<td class='nll-col'>-4.2237</td>
+<td class='mse-col'>3.03e-07</td>
+</tr>
+<tr class=''><td>64</td>
+<td class='nll-col'>-2.5766</td>
+<td class='mse-col'>3.74e-05</td>
+<td class='nll-col'>-4.1530</td>
+<td class='mse-col'>2.03e-06</td>
+<td class='nll-col'>-4.2454</td>
+<td class='mse-col'>5.28e-07</td>
+</tr>
+<tr class=''><td>32, 24, 18</td>
+<td class='nll-col'>-1.7987</td>
+<td class='mse-col'>2.47e-05</td>
+<td class='nll-col'>-3.6362</td>
+<td class='mse-col'>2.82e-06</td>
+<td class='nll-col'>-4.2508</td>
+<td class='mse-col'>3.15e-07</td>
+</tr>
+<tr class=''><td>64, 16</td>
+<td class='nll-col'>-2.2515</td>
+<td class='mse-col col-best'>2.92e-06</td>
+<td class='nll-col'>-4.0866</td>
+<td class='mse-col'>1.05e-06</td>
+<td class='nll-col'>-4.2550</td>
+<td class='mse-col'>5.67e-07</td>
+</tr>
+<tr class=''><td>64, 18</td>
+<td class='nll-col'>-2.5766</td>
+<td class='mse-col'>3.74e-05</td>
+<td class='nll-col'>-4.1530</td>
+<td class='mse-col'>2.03e-06</td>
+<td class='nll-col'>-4.2454</td>
+<td class='mse-col'>5.28e-07</td>
+</tr>
+<tr class=''><td>64, 24</td>
+<td class='nll-col'>-2.5800</td>
+<td class='mse-col'>9.35e-06</td>
+<td class='nll-col'>-4.1299</td>
+<td class='mse-col'>2.11e-06</td>
+<td class='nll-col'>-4.2572</td>
+<td class='mse-col'>2.29e-07</td>
+</tr>
+<tr class=''><td>64, 32</td>
+<td class='nll-col col-best'>-2.8185</td>
+<td class='mse-col'>8.70e-06</td>
+<td class='nll-col'>-4.1331</td>
+<td class='mse-col'>2.27e-06</td>
+<td class='nll-col'>-4.2538</td>
+<td class='mse-col table-best'>2.16e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24</td>
+<td class='nll-col'>-2.4641</td>
+<td class='mse-col'>8.51e-06</td>
+<td class='nll-col'>-4.0884</td>
+<td class='mse-col'>2.08e-06</td>
+<td class='nll-col'>-4.2181</td>
+<td class='mse-col'>1.29e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18</td>
+<td class='nll-col'>-2.4641</td>
+<td class='mse-col'>8.51e-06</td>
+<td class='nll-col'>-4.0884</td>
+<td class='mse-col'>2.08e-06</td>
+<td class='nll-col'>-4.2181</td>
+<td class='mse-col'>1.29e-06</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16</td>
+<td class='nll-col'>-2.5317</td>
+<td class='mse-col'>1.93e-05</td>
+<td class='nll-col'>-4.1083</td>
+<td class='mse-col'>7.71e-07</td>
+<td class='nll-col'>-4.2003</td>
+<td class='mse-col'>3.33e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8</td>
+<td class='nll-col'>-2.4640</td>
+<td class='mse-col'>6.79e-06</td>
+<td class='nll-col col-best'>-4.1620</td>
+<td class='mse-col'>7.00e-07</td>
+<td class='nll-col'>-4.2517</td>
+<td class='mse-col'>4.10e-07</td>
+</tr>
+<tr class=''><td>64, 32, 24, 18, 16, 8, 4</td>
+<td class='nll-col'>-1.8066</td>
+<td class='mse-col'>7.52e-06</td>
+<td class='nll-col'>-4.0053</td>
+<td class='mse-col col-worst'>4.02e-06</td>
+<td class='nll-col'>-4.2260</td>
+<td class='mse-col'>1.20e-06</td>
+</tr>
+</tbody></table>
+</div></body></html>
