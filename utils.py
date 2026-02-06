@@ -46,8 +46,8 @@ def normalize_hyperparameters(lr, hidden_dim, weight_decay):
         torch.Tensor
             Normalized hyperparameter vector.
     """
-    lr_min, lr_max = 1e-5, 3e-3
-    hidden_min, hidden_max = 4, 128
+    lr_min, lr_max = 1e-6, 3e-2
+    hidden_min, hidden_max = 2, 256
     wd_min, wd_max = 0.0, 0.1
     # layer_min, layer_max = 2, 10
 
