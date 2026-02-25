@@ -9,30 +9,38 @@ from ifbo import Curve
 
 selected_context_curves = [
     (64,),
-    (64, 32),
-    (64, 32, 24),
-    (64, 32, 24, 16),
-    (64, 32, 24, 16, 8),
-    (64, 32, 24, 16, 8, 4),
     (32,),
     (24,),
     (16,),
     (8,),
     (4,),
+    (64, 32),
+    (64, 32, 24),
+    (64, 32, 24, 16),
+    (64, 32, 24, 16, 8),
+    (64, 32, 24, 16, 8, 4),
+    (64, 24, 16, 8),
+    (64, 32, 16, 8),
+    (64, 32, 24, 8),
+    (64, 32, 24, 16, 4),
     (64, 24),
     (64, 16),
     (64, 8),
     (64, 4),
     (32, 24, 16, 8, 4),
+    (32, 24, 16),
+    (32, 24),
+    (32, 16),
+    (24, 16),
+    (24, 16, 8),
     (24, 16, 8, 4),
     (16, 8, 4),
+    (16, 8),
+    (16, 4),
+    (32, 8),
     (8, 4),
-    (64, 24, 16, 8, 4),
-    (64, 32, 16, 8, 4),
-    (64, 32, 24, 8, 4),
-    (64, 32, 24, 16, 4),
     (64, 8, 4),
-    (32, 24, 16),
+    #(64, 32, 24)
 ]
 
 
@@ -82,9 +90,12 @@ def predict(
             if run_data.get("lr") != lr or run_data.get("weight_decay") != weight_decay:
                 continue
 
-            curve_values = run_data.get("val_acc_curve", [])
+            curve_values = run_data.get("val_loss_curve", [])
             if len(curve_values) == 0:
                 continue
+            
+            perf_values = [1.0 - v for v in curve_values]
+            
             hp = normalize_hyperparameters(
                 run_data["lr"], 
                 run_data["hidden_dim"], 
@@ -93,11 +104,11 @@ def predict(
 
             t = torch.linspace(
                 0.0, 
-                float(len(curve_values)) / float(target_epochs), 
-                steps=len(curve_values)
+                float(len(perf_values)) / float(target_epochs), 
+                steps=len(perf_values)
             )
 
-            y_norm = fixed_range_normalize(curve_values)  # normalization for prediction only
+            y_norm = fixed_range_normalize(perf_values)  # normalization for prediction only
         
             print(run_data["hidden_dim"],"added to context")
 
@@ -119,12 +130,15 @@ def predict(
             if run_data.get("lr") != lr or run_data.get("hidden_dim") != hidden_dim or run_data.get("weight_decay") != weight_decay:
                 continue
 
-            print(run_data.get("hidden_dim"), "partial added as context")
                 
-            curve_values = run_data.get("val_acc_curve", [])[:epochs]
+            curve_values = run_data.get("val_loss_curve", [])[:epochs]
                 
             if len(curve_values) == 0:
                 continue
+            
+            print(run_data.get("hidden_dim"), "partial added as context")
+            
+            perf_values = [1.0 - v for v in curve_values]
 
             hp = normalize_hyperparameters(
                 run_data["lr"], 
@@ -134,11 +148,11 @@ def predict(
 
             t = torch.linspace(
                 0.0, 
-                float(len(curve_values)) / float(target_epochs), 
-                steps=len(curve_values)
+                float(len(perf_values)) / float(target_epochs), 
+                steps=len(perf_values)
             )
             
-            y_norm = fixed_range_normalize(curve_values)
+            y_norm = fixed_range_normalize(perf_values)
 
             context_curves.append(
                 Curve(
