@@ -2,45 +2,19 @@ import os
 import json
 import torch
 from models.mlp import MLP4
-from utils import fixed_range_normalize, get_device, normalize_hyperparameters, min_max_normalize
+from utils import fixed_range_normalize, get_device, normalize_hyperparameters, min_max_normalize, normalize_log_loss_curve
 from ifbo.surrogate import FTPFN
 from ifbo import Curve
 
 
 selected_context_curves = [
+    (64, 32, 24,),
+    (64, 32,),
+    (64, 24),
     (64,),
+    (32, 24,),
     (32,),
     (24,),
-    (16,),
-    (8,),
-    (4,),
-    (64, 32),
-    (64, 32, 24),
-    (64, 32, 24, 16),
-    (64, 32, 24, 16, 8),
-    (64, 32, 24, 16, 8, 4),
-    (64, 24, 16, 8),
-    (64, 32, 16, 8),
-    (64, 32, 24, 8),
-    (64, 32, 24, 16, 4),
-    (64, 24),
-    (64, 16),
-    (64, 8),
-    (64, 4),
-    (32, 24, 16, 8, 4),
-    (32, 24, 16),
-    (32, 24),
-    (32, 16),
-    (24, 16),
-    (24, 16, 8),
-    (24, 16, 8, 4),
-    (16, 8, 4),
-    (16, 8),
-    (16, 4),
-    (32, 8),
-    (8, 4),
-    (64, 8, 4),
-    #(64, 32, 24)
 ]
 
 
@@ -55,6 +29,7 @@ def predict(
     batch_size: int = 96,
     use_context: bool = True,
     trial_id=None,
+    random_allowed = 12,
     log_dir: str = "./runs_ifbo",
     save_dir: str = "./results",
 ):
@@ -81,21 +56,25 @@ def predict(
         print(f"\n=== Running FT-PFN with context widths: {subset_name} ===")
 
         context_curves = []
+        allowed_count = {hd: random_allowed for hd in width_subset}
+        
 
         for run_key, run_data in all_results.items():
             hd = run_data.get("hidden_dim")
             if hd not in width_subset:
                 continue
 
-            if run_data.get("lr") != lr or run_data.get("weight_decay") != weight_decay:
+            if allowed_count[hd] <= 0:
                 continue
-
+            
+            allowed_count[hd] -= 1
+                        
             curve_values = run_data.get("val_loss_curve", [])
             if len(curve_values) == 0:
                 continue
             
-            perf_values = [1.0 - v for v in curve_values]
-            
+            y_norm = normalize_log_loss_curve(curve_values)
+
             hp = normalize_hyperparameters(
                 run_data["lr"], 
                 run_data["hidden_dim"], 
@@ -104,21 +83,19 @@ def predict(
 
             t = torch.linspace(
                 0.0, 
-                float(len(perf_values)) / float(target_epochs), 
-                steps=len(perf_values)
+                float(len(y_norm)) / float(target_epochs), 
+                steps=len(y_norm)
             )
-
-            y_norm = fixed_range_normalize(perf_values)  # normalization for prediction only
-        
-            print(run_data["hidden_dim"],"added to context")
 
             context_curves.append(
                 Curve(
-                    hyperparameters=hp, 
-                    t=t, 
+                    hyperparameters=hp,
+                    t=t,
                     y=torch.tensor(y_norm, dtype=torch.float32)
                 )
             )
+        
+            print(run_data["hidden_dim"],"added to context")
 
         print(f"Saved ----------- {len(context_curves)} curves to FT-PFN context")
 
@@ -127,7 +104,7 @@ def predict(
         # -------------------------
 
         for run_key, run_data in all_results.items():
-            if run_data.get("lr") != lr or run_data.get("hidden_dim") != hidden_dim or run_data.get("weight_decay") != weight_decay:
+            if run_data.get("hidden_dim") != hidden_dim:
                 continue
 
                 
@@ -138,7 +115,7 @@ def predict(
             
             print(run_data.get("hidden_dim"), "partial added as context")
             
-            perf_values = [1.0 - v for v in curve_values]
+            y_norm = normalize_log_loss_curve(curve_values)
 
             hp = normalize_hyperparameters(
                 run_data["lr"], 
@@ -148,20 +125,17 @@ def predict(
 
             t = torch.linspace(
                 0.0, 
-                float(len(perf_values)) / float(target_epochs), 
-                steps=len(perf_values)
+                float(len(y_norm)) / float(target_epochs), 
+                steps=len(y_norm)
             )
-            
-            y_norm = fixed_range_normalize(perf_values)
 
             context_curves.append(
                 Curve(
-                    hyperparameters=hp, 
-                    t=t, 
+                    hyperparameters=hp,
+                    t=t,
                     y=torch.tensor(y_norm, dtype=torch.float32)
                 )
             )
-
         print(f"Saved +per = {len(context_curves)} curves to FT-PFN context")
 
         if len(context_curves) == 0:
@@ -193,7 +167,7 @@ def predict(
         # -------------------------
         pred_json_path = os.path.join(
             save_dir, 
-            f"ifbo_pred_[{subset_name}]_ep{epochs}.json"
+            f"ifbo_pred_[{subset_name}]_configs_{random_allowed}_ep{epochs}.json"
         )
 
 

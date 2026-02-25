@@ -9,13 +9,13 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 from matplotlib.colors import LogNorm
 
-from utils import fixed_range_normalize
+from utils import fixed_range_normalize, normalize_log_loss_curve
 
 # Configuration
 RESULTS_DIR = "results"
 EPOCHS_LIST = [0, 5, 10, 20]
 # ABLATIONS_LIST = ["[4]", "[8]", "[16]", "[24]", "[32]", "[64]"] #all_single
-# ABLATIONS_LIST = ["[64]", "[64_32]", "[64_32_24]", "[64_32_24_16]", "[64_32_24_16_8]", "[64_32_24_16_8_4]"] #64_all_comb
+ABLATIONS_LIST = ["[64_32_24]", "[64]", "[64_32]", "[32]", "[32_24]", "[24]"] #64_all_comb
 # ABLATIONS_LIST = ["[64_32_24]", "[64]", "[64_32]", "[32]", "[64_24]", "[24]"] #adding 32, 24 to 64
 # ABLATIONS_LIST = ["[64]", "[64_16]", "[16]", "[64_8]", "[8]", "[64_4]", "[4]"] #adding 4, 8, 16 to 64
 # ABLATIONS_LIST = ["[64_32]", "[32]", "[64_32_24]", "[32_24]", "[64_32_24_16]", "[32_24_16]", "[64_32_24_16_8_4]", "[32_24_16_8_4]", "[64_24_16_8]", "[24_16_8]"] #how 64 influence
@@ -49,34 +49,41 @@ def load_json(path):
         return json.load(f)
 
 def calculate_nll(y_true_curve, y_pred_dist, epoch_idx):
-    y_true_future = np.array(y_true_curve[epoch_idx:])
+    y_true_curve = np.array(y_true_curve)
     pred_mean = np.array(y_pred_dist["point"])
     q05 = np.array(y_pred_dist["quantiles"]["0.05"])
     q95 = np.array(y_pred_dist["quantiles"]["0.95"])
-    
-    min_len = min(len(y_true_future), len(pred_mean))
-    if min_len == 0:
+
+    # True final value (epoch 150)
+    if len(y_true_curve) == 0:
         return np.nan
-        
-    y_true = y_true_future[:min_len]
-    y_mean = pred_mean[:min_len]
-    sigma = (q95[:min_len] - q05[:min_len]) / 3.29
-    sigma = np.maximum(sigma, 1e-6)
-    
-    residual = y_true - y_mean
-    nll_per_step = 0.5 * np.log(2 * np.pi * sigma**2) + (residual**2) / (2 * sigma**2)
-    
-    return np.mean(nll_per_step)
+    y_true_final = y_true_curve[-1]
+
+    # Predicted final value
+    if len(pred_mean) == 0:
+        return np.nan
+    y_mean_final = pred_mean[-1]
+
+    sigma = (q95[-1] - q05[-1]) / 3.29
+    sigma = max(sigma, 1e-6)
+
+    residual = y_true_final - y_mean_final
+
+    nll = 0.5 * np.log(2 * np.pi * sigma**2) + (residual**2) / (2 * sigma**2)
+
+    return nll
 
 def calculate_mse(y_true_curve, y_pred_dist, epoch_idx):
-    y_true_future = np.array(y_true_curve[epoch_idx:])
+    y_true_curve = np.array(y_true_curve)
     pred_mean = np.array(y_pred_dist["point"])
-    
-    min_len = min(len(y_true_future), len(pred_mean))
-    if min_len == 0:
+
+    if len(y_true_curve) == 0 or len(pred_mean) == 0:
         return np.nan
-    
-    return np.mean((y_true_future[:min_len] - pred_mean[:min_len]) ** 2)
+
+    y_true_final = y_true_curve[-1]
+    y_mean_final = pred_mean[-1]
+
+    return (y_true_final - y_mean_final) ** 2
 
 def clean_context_name(s):
     return s.replace("[","").replace("]","").replace("_", ", ")
@@ -89,7 +96,7 @@ def main():
         return
 
     true_curves = {k: data.get("val_loss_curve", []) for k, data in metrics.items() if data.get("val_loss_curve")}
-    true_curves = {k: fixed_range_normalize([1 - v for v in curve]) for k, curve in true_curves.items()}
+    true_curves = {k: normalize_log_loss_curve(curve) for k, curve in true_curves.items()}
 
     nll_data = defaultdict(lambda: defaultdict(list))
     mse_data = defaultdict(lambda: defaultdict(list))
@@ -99,7 +106,7 @@ def main():
 
         # Ablation contexts
         for context_name in ABLATIONS_LIST:
-            pred_filename = f"ifbo_pred_{context_name}_ep{epoch}.json"
+            pred_filename = f"ifbo_pred_{context_name}_configs_1_ep{epoch}.json"
             pred_path = os.path.join(RESULTS_DIR, pred_filename)
             predictions = load_json(pred_path)
             if not predictions:
@@ -134,7 +141,7 @@ def main():
     context_order = ["baseline"] + [clean_context_name(ab) for ab in ABLATIONS_LIST]
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 14))
-    fig.suptitle('FT-PFN Performance Comparison Across Context Strategies\n(Distribution over 12 Target Configurations)', 
+    fig.suptitle('FT-PFN Performance Comparison Across Context Strategies\n(Distribution over 12 Target Configurations)\n Context: With 1 configurations per smaller scale)', 
                  fontsize=14, fontweight='bold', y=0.98)
 
     # NLL Boxplot
@@ -206,7 +213,7 @@ def main():
         mse_matrix.append(row)
     mse_matrix = np.array(mse_matrix)
 
-    vmin = 3e-04   # slightly smaller than your observed min
+    vmin = 1e-05   # slightly smaller than your observed min
     vmax = 1e-01   # slightly below the observed max for nicer color scaling
 
     im = ax2.imshow(mse_matrix, cmap='viridis', aspect='auto', norm=LogNorm(vmin=vmin, vmax=vmax))
@@ -233,7 +240,7 @@ def main():
                title='Observation Horizon', title_fontsize=10, fontsize=9)
 
     plt.tight_layout(rect=[0, 0, 1, 0.93])
-    output_path = "one-loss_outputs/nll_mse_boxplot_comparison.png"
+    output_path = "box_plots/nll_mse_boxplot_comparison_1.png"
     plt.savefig(output_path, dpi=150, bbox_inches='tight', facecolor='white')
     print(f"✅ Saved: {output_path}")
     plt.close()

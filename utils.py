@@ -165,3 +165,44 @@ def fixed_range_normalize(y, y_min=0.0, y_max=1.0):
     y = np.array(y, dtype=float)
     y_clipped = np.clip(y, y_min, y_max)
     return (y_clipped - y_min) / (y_max - y_min)
+
+
+import numpy as np
+import math
+
+def normalize_log_loss_curve(curve_values, loss_min: float= 1e-6, loss_max: float = 3.0) -> np.ndarray:
+    """
+    Convert a validation loss curve into IFBO-compatible performance values.
+
+    Steps:
+    1) log-transform losses
+    2) min-max normalize in log-space using global bounds
+    3) invert so higher = better
+    4) clip to [0,1]
+
+    Args:
+        curve_values : list or array-like
+            Raw validation loss values (>0)
+        loss_min : float
+            Global minimum expected loss
+        loss_max : float
+            Global maximum expected loss
+
+    Returns:
+        np.ndarray
+            Normalized performance values in [0,1]
+    """
+    curve_values = np.array(curve_values, dtype=float)
+
+    if np.any(curve_values <= 0):
+        raise ValueError("Loss values must be positive for log transform.")
+
+    log_losses = np.log(curve_values)
+
+    log_min = math.log(loss_min)
+    log_max = math.log(loss_max)
+
+    norm = (log_losses - log_min) / (log_max - log_min)
+
+    y = 1.0 - norm
+    return np.clip(y, 0.0, 1.0)
