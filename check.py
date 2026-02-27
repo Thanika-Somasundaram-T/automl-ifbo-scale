@@ -6,6 +6,7 @@ import json
 # ============================================
 RESULTS_DIR = "./results"
 PREFIX = "ifbo_pred_"
+MIN_KEYS = 12  # Minimum expected keys per file
 
 # ============================================
 # FIND ALL PREDICTION FILES
@@ -30,6 +31,7 @@ if len(pred_files) == 0:
 missing = []
 empty = []
 corrupt = []
+less_than_min = []
 
 for filename in pred_files:
     path = os.path.join(RESULTS_DIR, filename)
@@ -47,6 +49,9 @@ for filename in pred_files:
         if key_count == 0:
             print(f"🟡 EMPTY (0 keys): {filename}")
             empty.append(filename)
+        elif key_count < MIN_KEYS:
+            print(f"⚠️  LESS THAN {MIN_KEYS} KEYS ({key_count} keys): {filename}")
+            less_than_min.append((filename, key_count))
         else:
             print(f"✅ {filename} → {key_count} keys")
 
@@ -60,5 +65,11 @@ for filename in pred_files:
 print("\n==============================")
 print(f"Total prediction files : {len(pred_files)}")
 print(f"Empty files            : {len(empty)}")
+print(f"Files < {MIN_KEYS} keys   : {len(less_than_min)}")
 print(f"Corrupt files          : {len(corrupt)}")
 print("==============================\n")
+
+if less_than_min:
+    print("📌 Files with less than 12 keys:")
+    for fname, count in less_than_min:
+        print(f"  - {fname} → {count} keys")

@@ -17,6 +17,7 @@ venv/
 /rank*
 /plots*
 /by_loss*
+/results/norm*
 
 # Model checkpoints
 *.pt

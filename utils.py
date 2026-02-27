@@ -170,7 +170,7 @@ def fixed_range_normalize(y, y_min=0.0, y_max=1.0):
 import numpy as np
 import math
 
-def normalize_log_loss_curve(curve_values, loss_min: float= 1e-6, loss_max: float = 3.0) -> np.ndarray:
+def normalize_log_loss_curve(curve_values, loss_min: float= 0.01, loss_max: float = 2.0) -> np.ndarray:
     """
     Convert a validation loss curve into IFBO-compatible performance values.
 
@@ -206,3 +206,14 @@ def normalize_log_loss_curve(curve_values, loss_min: float= 1e-6, loss_max: floa
 
     y = 1.0 - norm
     return np.clip(y, 0.0, 1.0)
+
+
+def unnormalize_pred(norm_curve, loss_min=1e-6, loss_max=3.0):
+    """
+    Convert normalized log-loss predictions back to actual NLL.
+    """
+    norm_curve = np.clip(norm_curve, 0.0, 1.0)
+    log_min = math.log(loss_min)
+    log_max = math.log(loss_max)
+    log_losses = log_min + (1.0 - norm_curve) * (log_max - log_min)
+    return np.exp(log_losses)

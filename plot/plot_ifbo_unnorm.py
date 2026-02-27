@@ -1,17 +1,18 @@
 import os
 import json
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils import normalize_log_loss_curve  # <-- use SAME function as training
+from utils import normalize_log_loss_curve, unnormalize_pred  # Ground truth normalization if needed
 
 # ===================================================
 # USER INPUT
 # ===================================================
 RESULTS_DIR = "./results"
-PRED_DIR = "./results"
+PRED_DIR = "./results/norm 3.0"
 CURVES_FILE = os.path.join(RESULTS_DIR, "results_metrics.json")
-OUTPUT_DIR = "ablation_plots_normalized"
+OUTPUT_DIR = "ablation_plots_pred_unnormalized"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 epochs_observed_list = [0, 5, 10, 20]
@@ -62,11 +63,11 @@ run_lookup = {}
 
 for run_key, v in metrics.items():
     if (
-        v.get("lr") in NEPS_SPACE["lr"] and
-        v.get("weight_decay") in NEPS_SPACE["weight_decay"] and
-        v.get("lr_schedule") in NEPS_SPACE["lr_schedule"] and
-        v.get("num_layers") in NEPS_SPACE["num_layers"] and
-        v.get("hidden_dim") in NEPS_SPACE["hidden_dim"]
+        v.get("lr") in NEPS_SPACE["lr"]
+        and v.get("weight_decay") in NEPS_SPACE["weight_decay"]
+        and v.get("lr_schedule") in NEPS_SPACE["lr_schedule"]
+        and v.get("num_layers") in NEPS_SPACE["num_layers"]
+        and v.get("hidden_dim") in NEPS_SPACE["hidden_dim"]
     ):
         pattern = (
             v["lr"],
@@ -81,9 +82,7 @@ for run_key, v in metrics.items():
 patterns = sorted(set(patterns))
 print(f"✅ Found {len(patterns)} patterns")
 
-# ===================================================
-# MAIN LOOP
-# ===================================================
+
 colors = plt.cm.tab20(np.linspace(0, 1, len(PRED_PREFIXES)))
 
 for pattern in patterns:
@@ -95,13 +94,15 @@ for pattern in patterns:
     if len(full_curve_raw) == 0:
         continue
 
-    # 🔥 Normalize FULL curve using same function as training
-    full_curve_norm = normalize_log_loss_curve(full_curve_raw)
+    # Normalize full curve if needed for plotting (optional)
+    full_curve_norm = full_curve_raw
 
     for obs_epoch in epochs_observed_list:
 
-        n_rows, n_cols = 3, 3
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 15), dpi=200)
+        n_cols = 3
+        n_rows = int(np.ceil(len(PRED_PREFIXES) / n_cols))
+
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 4 * n_rows), dpi=200)
         axes = axes.flatten()
 
         for idx, (prefix, color) in enumerate(zip(PRED_PREFIXES, colors)):
@@ -120,51 +121,48 @@ for pattern in patterns:
                 pred_file_data = json.load(f)
 
             key = f"layer{layers_val}_lr{lr_val}_hd{hd_val}_wd{wd_val}_{sched_val}_{obs_epoch}"
-
             if key not in pred_file_data:
                 continue
 
             pred = pred_file_data[key]
 
             # -----------------------------
-            # Ground Truth (normalized)
+            # Ground Truth (as-is)
             # -----------------------------
             ax.plot(
-                np.arange(1, len(full_curve_norm) + 1),
-                full_curve_norm,
+                np.arange(1, len(full_curve_raw) + 1),
+                full_curve_raw,
                 color=color,
                 linewidth=2,
                 alpha=0.8,
                 label="Ground Truth",
             )
 
-            # -----------------------------
             # Observed portion
-            # -----------------------------
-            val_obs_norm = full_curve_norm[:obs_epoch]
+            val_obs_raw = full_curve_raw[:obs_epoch]
             ax.plot(
-                np.arange(1, len(val_obs_norm) + 1),
-                val_obs_norm,
+                np.arange(1, len(val_obs_raw) + 1),
+                val_obs_raw,
                 color=color,
                 linewidth=4,
                 label="Observed",
             )
 
             # -----------------------------
-            # Prediction (already normalized)
+            # Prediction (unnormalized)
             # -----------------------------
-            mean_pred_norm = np.asarray(pred["point"])
-            lower_pred_norm = np.asarray(pred["quantiles"]["0.05"])
-            upper_pred_norm = np.asarray(pred["quantiles"]["0.95"])
+            mean_pred = unnormalize_pred(np.asarray(pred["point"]))
+            lower_pred = unnormalize_pred(np.asarray(pred["quantiles"]["0.05"]))
+            upper_pred = unnormalize_pred(np.asarray(pred["quantiles"]["0.95"]))
 
             epochs_pred = np.arange(
-                len(val_obs_norm),
-                len(val_obs_norm) + len(mean_pred_norm),
+                len(val_obs_raw),
+                len(val_obs_raw) + len(mean_pred),
             )
 
             ax.plot(
                 epochs_pred,
-                mean_pred_norm,
+                mean_pred,
                 color=color,
                 linestyle="--",
                 linewidth=2,
@@ -173,8 +171,8 @@ for pattern in patterns:
 
             ax.fill_between(
                 epochs_pred,
-                lower_pred_norm,
-                upper_pred_norm,
+                lower_pred,
+                upper_pred,
                 color=color,
                 alpha=0.2,
             )
@@ -183,15 +181,15 @@ for pattern in patterns:
             # Formatting
             # -----------------------------
             pred_name_part = prefix.split("ifbo_pred_")[1].replace("_ep", "")
-
             ax.set_title(
                 f"{pred_name_part} | lr={lr_val}, wd={wd_val} obs_epoch={obs_epoch}",
                 fontsize=9,
             )
-
             ax.set_xlabel("Epoch")
-            ax.set_ylabel("Normalized Val Score (1 - log-loss)")
-            ax.set_ylim(0.0, 1.0)
+            ax.set_ylabel("Val Score (NLL)")
+            y_min, y_max = 0.0, 1.0       # fixed y-axis range
+            ax.set_ylim(y_min, y_max)
+            # ax.set_yticks(y_ticks)
             ax.grid(True)
 
         # Remove unused axes
@@ -199,10 +197,8 @@ for pattern in patterns:
             fig.delaxes(axes[j])
 
         plt.tight_layout()
-
-        filename = f"lr{lr_val}_wd{wd_val}_obs{obs_epoch}.png"
+        filename = f"lr{lr_val}_wd{wd_val}_obs{obs_epoch}_pred_unnormalized.png"
         out_path = os.path.join(OUTPUT_DIR, filename)
-
         plt.savefig(out_path)
         plt.close()
 
