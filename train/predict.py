@@ -2,19 +2,18 @@ import os
 import json
 import torch
 from models.mlp import MLP4
-from utils import fixed_range_normalize, get_device, normalize_hyperparameters, min_max_normalize, normalize_log_loss_curve
+from utils import fixed_range_normalize, generate_keys, get_device, normalize_hyperparameters, min_max_normalize, normalize_log_loss_curve
 from ifbo.surrogate import FTPFN
 from ifbo import Curve
 
 
 selected_context_curves = [
-    (64, 32, 24,),
-    (64, 32,),
-    (64, 24),
     (64,),
-    (32, 24,),
     (32,),
     (24,),
+    (16,),
+    (8,),
+    
 ]
 
 
@@ -29,7 +28,7 @@ def predict(
     batch_size: int = 96,
     use_context: bool = True,
     trial_id=None,
-    random_allowed = 12,
+    config= 12,
     log_dir: str = "./runs_ifbo",
     save_dir: str = "./results",
 ):
@@ -56,18 +55,17 @@ def predict(
         print(f"\n=== Running FT-PFN with context widths: {subset_name} ===")
 
         context_curves = []
-        allowed_count = {hd: random_allowed for hd in width_subset}
         
 
         for run_key, run_data in all_results.items():
             hd = run_data.get("hidden_dim")
             if hd not in width_subset:
                 continue
-
-            if allowed_count[hd] <= 0:
+            key = generate_keys(hd=hd)[config]
+            if key != run_key:
                 continue
             
-            allowed_count[hd] -= 1
+            print("choosen key ", config, " : ", key)
                         
             curve_values = run_data.get("val_loss_curve", [])
             if len(curve_values) == 0:
@@ -104,10 +102,10 @@ def predict(
         # -------------------------
 
         for run_key, run_data in all_results.items():
-            if run_data.get("hidden_dim") != hidden_dim:
+            if run_data.get("lr") != lr or run_data.get("hidden_dim") != hidden_dim or run_data.get("weight_decay") != weight_decay:
                 continue
 
-                
+            print("128 key ", run_key)    
             curve_values = run_data.get("val_loss_curve", [])[:epochs]
                 
             if len(curve_values) == 0:
@@ -167,7 +165,7 @@ def predict(
         # -------------------------
         pred_json_path = os.path.join(
             save_dir, 
-            f"ifbo_pred_[{subset_name}]_configs_{random_allowed}_ep{epochs}.json"
+            f"ifbo_pred_[{subset_name}]_configs_{config}_ep{epochs}.json"
         )
 
 

@@ -10,7 +10,7 @@ venv/
 .ipynb_checkpoints/
 
 # Logs and results
-/results_*
+/results*
 /runs*
 /neps_results*
 /data/
@@ -18,6 +18,9 @@ venv/
 /plots*
 /by_loss*
 /results/norm*
+/green_plots
+/table_*
+/positive_*
 
 # Model checkpoints
 *.pt

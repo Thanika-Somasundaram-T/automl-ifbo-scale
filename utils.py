@@ -166,49 +166,44 @@ def fixed_range_normalize(y, y_min=0.0, y_max=1.0):
     y_clipped = np.clip(y, y_min, y_max)
     return (y_clipped - y_min) / (y_max - y_min)
 
-
-import numpy as np
-import math
-
-def normalize_log_loss_curve(curve_values, loss_min: float= 0.01, loss_max: float = 2.0) -> np.ndarray:
+def normalize_log_loss_curve(curve_values, loss_min: float = 1e-3, loss_max: float = None, num_classes: int = 10) -> np.ndarray:
     """
     Convert a validation loss curve into IFBO-compatible performance values.
 
     Steps:
-    1) log-transform losses
-    2) min-max normalize in log-space using global bounds
-    3) invert so higher = better
-    4) clip to [0,1]
+        1) Log-transform losses
+        2) Min-max normalize in log-space using global bounds
+        3) Invert so higher = better
+        4) Clip to [0, 1]
 
     Args:
         curve_values : list or array-like
-            Raw validation loss values (>0)
+            Raw validation loss values (>0).
         loss_min : float
-            Global minimum expected loss
-        loss_max : float
-            Global maximum expected loss
-
-    Returns:
-        np.ndarray
-            Normalized performance values in [0,1]
+            Global minimum expected loss (meta-parameter: 0.1 or 1e-3).
+        loss_max : float or None
+            Global maximum expected loss. If None, uses log2(num_classes).
+        num_classes : int
+            Number of dataset classes (10 for Fashion-MNIST).
     """
+    if loss_max is None:
+        loss_max = math.log2(num_classes)  # 3.3219 for 10 classes
+
     curve_values = np.array(curve_values, dtype=float)
 
     if np.any(curve_values <= 0):
         raise ValueError("Loss values must be positive for log transform.")
 
     log_losses = np.log(curve_values)
-
-    log_min = math.log(loss_min)
-    log_max = math.log(loss_max)
+    log_min = np.log(loss_min)
+    log_max = np.log(loss_max)
 
     norm = (log_losses - log_min) / (log_max - log_min)
-
     y = 1.0 - norm
     return np.clip(y, 0.0, 1.0)
 
 
-def unnormalize_pred(norm_curve, loss_min=1e-6, loss_max=3.0):
+def unnormalize_pred(norm_curve, loss_min=1e-6, loss_max=1.0):
     """
     Convert normalized log-loss predictions back to actual NLL.
     """
@@ -217,3 +212,24 @@ def unnormalize_pred(norm_curve, loss_min=1e-6, loss_max=3.0):
     log_max = math.log(loss_max)
     log_losses = log_min + (1.0 - norm_curve) * (log_max - log_min)
     return np.exp(log_losses)
+
+def format_lr(lr):
+    # Always use scientific notation like 1e-05
+    return f"{lr:.0e}"
+
+def generate_keys(hd):
+    lrs = [1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3]
+    wds = [0.0, 0.01]
+
+    keys = {}
+    idx = 1
+
+    for lr in lrs:
+        for wd in wds:
+            # lr_str = format_lr(lr)
+            lr_str = lr
+            key = f"layer4_lr{lr_str}_hd{hd}_wd{wd}_cosine"
+            keys[idx] = key
+            idx += 1
+
+    return keys
