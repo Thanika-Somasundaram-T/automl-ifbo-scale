@@ -1,28 +1,60 @@
 # IFBO Scale Prediction Analysis
 
-This folder contains the consolidated analysis script (`supervisor_analysis.py`) for evaluating the performance of Foundation Transformer for Parameter Prediction (FT-PFN).
+Analysis of FT-PFN predictions across different source hyperparameter contexts and base scales.
 
 ## Objective
-The primary goal is to analyze and compare the impact of providing different hyperparameter learning curves as context. We evaluate how well the model predicts the learning curves of *target* hyperparameters when conditioned on the learning curve of a *source* hyperparameter at various base scales (hidden dimensions: 8, 16, 24, 32, 64).
+
+Evaluate how well the model predicts target HP learning curves (hd=128) when conditioned on different source HPs, across base scales (hd: 8, 16, 24, 32, 64) and observation epochs (T = 0, 5, 10, 20, 50, 90).
+
+## Project Structure
+
+```
+├── run_analysis.py       # Entry point — runs full pipeline
+├── config.py             # Paths, constants, HP mappings
+├── metrics.py            # NLL/MSE calculations, normalization, data loading
+├── plot_boxplots.py      # Cross-scale + per-source-HP boxplots
+├── plot_heatmaps.py      # 12×12 source→target NLL heatmaps
+├── generate_html.py      # Cross-ranking HTML tables (NLL & MSE)
+├── generate_csv.py       # CSV export + rank pivot
+├── data/                 # Self-contained input data
+│   ├── predictions/      # FT-PFN prediction JSONs
+│   └── results_metrics.json  # Ground truth val_loss curves
+├── outputs/              # Normalized mode results
+│   ├── nll/              # Boxplots, heatmaps, HTML ranking
+│   ├── mse/              # HTML ranking only
+│   ├── all_metrics.csv
+│   └── rank_source_per_target.csv
+└── outputs_raw/          # Raw loss mode results
+    ├── nll/              # Boxplots (log-scale), heatmaps, HTML ranking
+    ├── mse/              # HTML ranking only
+    ├── all_metrics.csv
+    └── rank_source_per_target.csv
+```
 
 ## Evaluation Modes
-The analysis evaluates the predictions across multiple observation epochs (T = 0, 5, 10, 20, 50, 90) using two distinct methodologies:
 
-1. **NORMALIZED (all-future avg)**
-   - **Space**: Predictions and ground truth are compared in the normalized `[0, 1]` performance space (where higher is better).
-   - **Metric**: The Negative Log-Likelihood (NLL) and Mean Squared Error (MSE) are averaged across the entire predicted trajectory curve.
-   - **Visualization**: All plots use linear scaling with universal bounds. Output is saved to `outputs/`.
+### NORMALIZED (all-future avg)
+- **Space**: Normalized `[0, 1]` performance (higher = better)
+- **Metric**: NLL and MSE averaged across the full predicted trajectory
+- **Plots**: Linear scale, universal y-axis bounds across epochs
 
-2. **RAW LOSS (final-point only)**
-   - **Space**: Predictions are unnormalized back into the raw validation loss space (`val_loss`, lower is better) and compared against the raw ground truth loss.
-   - **Metric**: The NLL and MSE calculations look *only* at the final timestamp (epoch 100), rather than averaging over the curve.
-   - **Visualization**: Boxplots use a **log-scale** y-axis to accommodate the massive NLL spread between T=0 (~1e10) and T=90 (~1). Heatmaps use linear scaling with universal color bounds. Output is saved to `outputs_raw/`.
+### RAW LOSS (final-point only)
+- **Space**: Raw validation loss (lower = better)
+- **Metric**: NLL and MSE at the final timestamp (epoch 100) only
+- **Plots**: Log-scale y-axis for boxplots; linear heatmaps with universal bounds
 
-## Generated Outputs
-For both modes, running the script generates the following artifacts:
+## Usage
 
-- **Cross-scale Boxplots:** `cross_scale_nll_aggregated.png` compares NLL distributions across all base scale hidden dimensions and observation epochs.
-- **Source HP Boxplots:** `source_hp_nll_scale_{X}.png` visualizes the distribution of target prediction NLLs for each of the 12 specific source hyperparameters used as context.
-- **NLL Heatmaps:** `heatmap_nll_scale_{X}_T{Y}.png` visualizes the 12x12 matrix of absolute NLL values when predicting target HPs from source HPs. Uses universal color mapping across all matrices for consistent visual contrast.
-- **CSV Data:** `all_metrics.csv` containing raw results, and `rank_source_per_target.csv` for rankings.
-- **Cross-ranking HTML Table:** `cross_ranking_source_target.html` interactively displays the relative rank (1 to 12) of each source HP when predicting a specific target HP. Green cells (Rank 1) indicate the best source HP context for that given target column.
+```bash
+python run_analysis.py
+```
+
+## Generated Outputs (per mode)
+
+| Output | NLL | MSE |
+|--------|-----|-----|
+| Cross-scale boxplots | ✅ | — |
+| Source HP boxplots (per scale) | ✅ | — |
+| 12×12 heatmaps (per scale × epoch) | ✅ | — |
+| Cross-ranking HTML table | ✅ | ✅ |
+| CSV (all_metrics + rank pivot) | ✅ (combined) | ✅ (combined) |
