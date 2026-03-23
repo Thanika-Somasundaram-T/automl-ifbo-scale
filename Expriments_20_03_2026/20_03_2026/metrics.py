@@ -79,6 +79,28 @@ def calculate_mse(y_true, pred_data, epoch_idx):
     return float(np.mean((y_true_future[:min_len] - pred_mean[:min_len]) ** 2))
 
 
+def calculate_nll_final(y_true_norm, pred_data):
+    """NLL at final point in normalized space (no unnormalization)."""
+    pred_mean = np.array(pred_data["point"])
+    q05 = np.array(pred_data["quantiles"]["0.05"])
+    q95 = np.array(pred_data["quantiles"]["0.95"])
+    if len(pred_mean) == 0:
+        return np.nan
+    y_true_final = y_true_norm[-1]
+    y_mean_final = pred_mean[-1]
+    sigma = max((q95[-1] - q05[-1]) / 3.29, 1e-6)
+    residual = y_true_final - y_mean_final
+    return float(0.5 * np.log(2 * np.pi * sigma**2) + (residual**2) / (2 * sigma**2))
+
+
+def calculate_mse_final(y_true_norm, pred_data):
+    """MSE at final point in normalized space (no unnormalization)."""
+    pred_mean = np.array(pred_data["point"])
+    if len(pred_mean) == 0:
+        return np.nan
+    return float((y_true_norm[-1] - pred_mean[-1]) ** 2)
+
+
 def calculate_nll_raw(y_true_raw, pred_data):
     """NLL at final point in raw loss space (unnormalize preds first)."""
     pred_mean = unnormalize_log_loss_curve(np.array(pred_data["point"]))
@@ -130,7 +152,7 @@ def load_ground_truth(normalized=True):
 # ─────────────────────────────────────────────
 # Compute all metrics
 # ─────────────────────────────────────────────
-def compute_all_metrics(true_curves, raw_mode=False):
+def compute_all_metrics(true_curves, raw_mode=False, final_point=False):
     """Returns list of dicts with (scale, source_config, epoch, target_hp, nll, mse)."""
     rows = []
     for scale in BASE_SCALES:
@@ -147,6 +169,9 @@ def compute_all_metrics(true_curves, raw_mode=False):
                     if raw_mode:
                         nll = calculate_nll_raw(true_curves[target_hp], pred_data)
                         mse = calculate_mse_raw(true_curves[target_hp], pred_data)
+                    elif final_point:
+                        nll = calculate_nll_final(true_curves[target_hp], pred_data)
+                        mse = calculate_mse_final(true_curves[target_hp], pred_data)
                     else:
                         nll = calculate_nll(true_curves[target_hp], pred_data, epoch)
                         mse = calculate_mse(true_curves[target_hp], pred_data, epoch)
@@ -173,6 +198,9 @@ def compute_all_metrics(true_curves, raw_mode=False):
             if raw_mode:
                 nll = calculate_nll_raw(true_curves[target_hp], pred_data)
                 mse = calculate_mse_raw(true_curves[target_hp], pred_data)
+            elif final_point:
+                nll = calculate_nll_final(true_curves[target_hp], pred_data)
+                mse = calculate_mse_final(true_curves[target_hp], pred_data)
             else:
                 nll = calculate_nll(true_curves[target_hp], pred_data, epoch)
                 mse = calculate_mse(true_curves[target_hp], pred_data, epoch)

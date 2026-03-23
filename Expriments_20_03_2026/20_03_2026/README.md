@@ -19,12 +19,17 @@ Evaluate how well the model predicts target HP learning curves (hd=128) when con
 ├── data/                 # Self-contained input data
 │   ├── predictions/      # FT-PFN prediction JSONs
 │   └── results_metrics.json  # Ground truth val_loss curves
-├── outputs/              # Normalized mode results
+├── outputs/              # Mode 1: Normalized, all-future avg
 │   ├── nll/              # Boxplots, heatmaps, HTML ranking
 │   ├── mse/              # HTML ranking only
 │   ├── all_metrics.csv
 │   └── rank_source_per_target.csv
-└── outputs_raw/          # Raw loss mode results
+├── outputs_final/        # Mode 2: Normalized, final-point only (matches Thanika)
+│   ├── nll/              # Boxplots, heatmaps, HTML ranking
+│   ├── mse/              # HTML ranking only
+│   ├── all_metrics.csv
+│   └── rank_source_per_target.csv
+└── outputs_raw/          # Mode 3: Raw loss, final-point only
     ├── nll/              # Boxplots (log-scale), heatmaps, HTML ranking
     ├── mse/              # HTML ranking only
     ├── all_metrics.csv
@@ -33,15 +38,11 @@ Evaluate how well the model predicts target HP learning curves (hd=128) when con
 
 ## Evaluation Modes
 
-### NORMALIZED (all-future avg)
-- **Space**: Normalized `[0, 1]` performance (higher = better)
-- **Metric**: NLL and MSE averaged across the full predicted trajectory
-- **Plots**: Linear scale, universal y-axis bounds across epochs
-
-### RAW LOSS (final-point only)
-- **Space**: Raw validation loss (lower = better)
-- **Metric**: NLL and MSE at the final timestamp (epoch 100) only
-- **Plots**: Log-scale y-axis for boxplots; linear heatmaps with universal bounds
+| Mode | Directory | Space | Averaging | Notes |
+|------|-----------|-------|-----------|-------|
+| 1 | `outputs/` | Normalized [0,1] | All-future avg | Full predicted trajectory |
+| 2 | `outputs_final/` | Normalized [0,1] | Final-point only | Matches Thanika's `table.py` |
+| 3 | `outputs_raw/` | Raw val_loss | Final-point only | Log-scale boxplots |
 
 ## Usage
 

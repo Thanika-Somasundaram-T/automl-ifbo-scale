@@ -66,7 +66,14 @@ def main():
         if rows_norm:
             run_analysis(rows_norm, OUTPUT_DIR, "NORMALIZED (all-future avg)")
 
-    # Mode 2: Raw loss space, final-point only (log-scale boxplots)
+    # Mode 2: Normalized space, final-point only (matches Thanika's table.py)
+    final_dir = OUTPUT_DIR.rstrip("/") + "_final"
+    if true_norm:
+        rows_final = compute_all_metrics(true_norm, final_point=True)
+        if rows_final:
+            run_analysis(rows_final, final_dir, "NORMALIZED (final-point only)")
+
+    # Mode 3: Raw loss space, final-point only (log-scale boxplots)
     raw_dir = OUTPUT_DIR.rstrip("/") + "_raw"
     true_raw = load_ground_truth(normalized=False)
     if true_raw:
