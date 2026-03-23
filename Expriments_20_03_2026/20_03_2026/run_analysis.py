@@ -15,7 +15,7 @@ import os
 from config import OUTPUT_DIR
 from metrics import load_ground_truth, compute_all_metrics
 from plot_boxplots import plot_cross_scale_boxplot, plot_source_hp_boxplots
-from plot_heatmaps import plot_heatmaps
+from plot_heatmaps import plot_heatmaps, plot_heatmaps_baseline_diff
 from generate_html import generate_cross_ranking_html
 from generate_csv import generate_csv_tables
 
@@ -47,6 +47,9 @@ def run_analysis(all_rows, output_dir, label, log_scale=False):
 
     print("\n─── NLL: Cross-ranking HTML ───")
     generate_cross_ranking_html(all_rows, nll_dir, metric="nll")
+
+    print("\n─── NLL: Baseline-diff heatmaps ───")
+    plot_heatmaps_baseline_diff(all_rows, nll_dir, metric="nll")
 
     # ── MSE: ranking table only ──
     mse_dir = os.path.join(output_dir, "mse")
