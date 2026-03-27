@@ -87,5 +87,5 @@ for width in widths:
                     fontsize=12, pad=35)
 
         # Save each plot as PNG
-        plt.savefig(f"table_hd{width}_{epoch}.png", bbox_inches='tight', dpi=300)
+        plt.savefig(f"norm_table_hd{width}_{epoch}.png", bbox_inches='tight', dpi=300)
         plt.close()

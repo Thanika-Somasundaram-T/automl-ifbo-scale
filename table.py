@@ -1,7 +1,7 @@
 import json
 import os
 import numpy as np
-from utils import generate_keys
+from utils import generate_keys, normalize_log_loss_curve
 
 def calculate_nll(y_true_curve, y_pred_dist):
     y_true_final = y_true_curve[-1]
@@ -46,8 +46,8 @@ def process_file(file_path, row_name, table_dict):
             if base_key in result_metrics and pred_key in pred_data:
                 y_true_curve = result_metrics[base_key]["val_loss_curve"]
                 y_pred_dist = pred_data[pred_key]
-                residual, sigma, nll = calculate_nll(y_true_curve, y_pred_dist)
-                mse = calculate_mse(y_true_curve, y_pred_dist)
+                residual, sigma, nll = calculate_nll(normalize_log_loss_curve(y_true_curve), y_pred_dist)
+                mse = calculate_mse(normalize_log_loss_curve(y_true_curve), y_pred_dist)
                 table_dict[row_name][f"config_{col_c}"] = {
                     "residual": residual,
                     "sigma": sigma,
