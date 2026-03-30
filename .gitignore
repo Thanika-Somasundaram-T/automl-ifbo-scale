@@ -21,6 +21,8 @@ venv/
 /green_plots
 /table_*
 /positive_*
+/27*
+/diff*
 
 # Model checkpoints
 *.pt

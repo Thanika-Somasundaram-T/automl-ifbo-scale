@@ -62,10 +62,11 @@ def normalize_hyperparameters(lr, hidden_dim, weight_decay):
     weight_decay_norm = (weight_decay - wd_min) / (wd_max - wd_min)
     # layer_norm = (num_layer - layer_min) / (layer_max - layer_min)  # BUG FIX
 
-    return torch.tensor(
-        [lr_norm, hidden_norm, weight_decay_norm],
-        dtype=torch.float32,
-    ).clamp(0.0, 1.0)
+    return torch.tensor([
+        0,
+        0,
+        0,
+    ], dtype=torch.float32).flatten().clamp(0.0, 1.0)
 
 def parse_key(key):
     """
@@ -233,3 +234,34 @@ def generate_keys(hd):
             idx += 1
 
     return keys
+
+
+def normalize_log_loss_curve_per_curve(curve_values) -> np.ndarray:
+    """
+    Normalize a validation loss curve using its own min/max (per-curve).
+
+    Steps:
+        1) Log-transform losses
+        2) Min-max normalize using curve-specific bounds
+        3) Invert so higher = better
+        4) Clip to [0, 1]
+    """
+    curve_values = np.array(curve_values, dtype=float)
+    print(curve_values.shape)
+
+    if np.any(curve_values <= 0):
+        raise ValueError("Loss values must be positive for log transform.")
+
+    log_losses = np.log(curve_values)
+
+    log_min = np.min(log_losses)
+    log_max = np.max(log_losses)
+
+    # Avoid division by zero (flat curve case)
+    if log_max == log_min:
+        return np.ones_like(log_losses)
+
+    norm = (log_losses - log_min) / (log_max - log_min)
+    y = 1.0 - norm
+
+    return np.clip(y, 0.0, 1.0)

@@ -12,7 +12,7 @@ pipeline_space:
   num_layers: 4
 
   # Hidden dimensions
-  hidden_dim: 128
+  hidden_dim: 64
 
   # Weight decay: 2 choices
   weight_decay:
@@ -30,7 +30,7 @@ pipeline_space:
   #Different subsets of context curves
   context_id:
     type: categorical
-    choices: [0, 1, 2, 3, 4]
+    choices: [0, 1, 2]
 
   use_context: True
   batch_size: 96

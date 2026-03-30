@@ -1,18 +1,17 @@
 import os
 import json
+import random
 import torch
 from models.mlp import MLP4
-from utils import fixed_range_normalize, generate_keys, get_device, normalize_hyperparameters, min_max_normalize, normalize_log_loss_curve
+from utils import normalize_log_loss_curve_per_curve, generate_keys, get_device, normalize_hyperparameters, min_max_normalize, normalize_log_loss_curve
 from ifbo.surrogate import FTPFN
 from ifbo import Curve
 
 
 selected_context_curves = [
-    (64,),
     (32,),
     (24,),
-    (16,),
-    (8,),
+    (32, 24),
     
 ]
 
@@ -105,7 +104,7 @@ def predict(
             if run_data.get("lr") != lr or run_data.get("hidden_dim") != hidden_dim or run_data.get("weight_decay") != weight_decay:
                 continue
 
-            print("128 key ", run_key)    
+            print(hidden_dim, " key ", run_key)    
             curve_values = run_data.get("val_loss_curve", [])[:epochs]
                 
             if len(curve_values) == 0:

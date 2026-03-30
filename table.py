@@ -1,7 +1,7 @@
 import json
 import os
 import numpy as np
-from utils import generate_keys, normalize_log_loss_curve
+from utils import generate_keys, normalize_log_loss_curve, normalize_log_loss_curve_per_curve
 
 def calculate_nll(y_true_curve, y_pred_dist):
     y_true_final = y_true_curve[-1]
@@ -25,11 +25,11 @@ with open("results/results_metrics.json", "r") as f:
     result_metrics = json.load(f)
 
 # --- Settings ---
-widths = [64, 32, 24, 16, 8]
+widths = [32, 24, "32_24"]
 configs = range(1, 13)
 eps = [0, 5, 10, 20, 50, 90]
-keys_128 = generate_keys(128)
-pred_dir = "results/"
+keys_128 = generate_keys(64)
+pred_dir = "results/only_hd"
 
 # --- Table dict for JSON ---
 table_dict = {}
@@ -77,7 +77,7 @@ for ep in baseline_eps:
     process_file(baseline_file, row_name, table_dict)
 
 # --- Save JSON ---
-with open("residual_nll_mse_table.json", "w") as f:
+with open("table_ohd.json", "w") as f:
     json.dump(table_dict, f, indent=2)
 
 print("JSON updated with baseline predictions!")
