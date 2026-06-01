@@ -1,0 +1,51 @@
+{
+  "experiment": "ex0_6_supervisor_prefix_only",
+  "raw_parquet": "demo_analysis/warmstart_runs_flattened.parquet",
+  "model_path": ".model",
+  "model_version": "0.0.1",
+  "policy": "prefix_only",
+  "hp_slice": {
+    "method": "paws",
+    "base_N": 14562560,
+    "shrink": 0.4,
+    "tkpm": 20.0,
+    "target_N": [
+      32270848,
+      77124608,
+      134561280,
+      287183360,
+      610488320
+    ]
+  },
+  "obs_fracs": [
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    0.9
+  ],
+  "ylim": [
+    1.5,
+    4.5
+  ],
+  "hp_ranges": {
+    "target_N_norm": {
+      "min": 7.508810377764668,
+      "max": 8.78567735934057
+    },
+    "G_norm": {
+      "min": 0.345572650030438,
+      "max": 1.6224396316063383
+    },
+    "shrink_norm": {
+      "min": 0.4,
+      "max": 0.4
+    },
+    "tkpm_norm": {
+      "min": 20.0,
+      "max": 20.0
+    }
+  },
+  "n_raw_validation_rows": 13170,
+  "n_prediction_rows": 1321
+}

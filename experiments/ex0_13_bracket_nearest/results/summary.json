@@ -1,0 +1,85 @@
+{
+  "experiment": "ex0_13_bracket_nearest",
+  "raw_parquet": "demo_analysis/warmstart_runs_flattened.parquet",
+  "model_path": ".model",
+  "model_version": "0.0.1",
+  "policy": "bracket_nearest",
+  "hp_slice": {
+    "method": "paws",
+    "base_N": 14562560,
+    "shrink": 0.4,
+    "tkpm": 20.0,
+    "target_N": [
+      32270848,
+      77124608,
+      134561280,
+      287183360,
+      610488320
+    ]
+  },
+  "obs_fracs": [
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    0.9
+  ],
+  "ylim": [
+    1.5,
+    4.5
+  ],
+  "predicted_targets": [
+    77124608,
+    134561280,
+    287183360
+  ],
+  "skipped_targets": [
+    32270848,
+    610488320
+  ],
+  "skipped_targets_by_obs_frac": {
+    "0.05": [
+      32270848,
+      610488320
+    ],
+    "0.10": [
+      32270848,
+      610488320
+    ],
+    "0.20": [
+      32270848,
+      610488320
+    ],
+    "0.50": [
+      32270848,
+      610488320
+    ],
+    "0.90": [
+      32270848,
+      610488320
+    ]
+  },
+  "n_prediction_rows": 34548,
+  "seed": 0,
+  "device": "cuda",
+  "normalization_policy": "LOO log-loss range over all non-query PAWS slice trajectories",
+  "context_size_by_target": {
+    "77124608": 3,
+    "134561280": 3,
+    "287183360": 3
+  },
+  "partners_by_target": {
+    "77124608": {
+      "nearest_below": 32270848,
+      "nearest_above": 134561280
+    },
+    "134561280": {
+      "nearest_below": 77124608,
+      "nearest_above": 287183360
+    },
+    "287183360": {
+      "nearest_below": 134561280,
+      "nearest_above": 610488320
+    }
+  }
+}

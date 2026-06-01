@@ -26,3 +26,9 @@ venv/
 
 # Misc
 # .DS_Store
+
+# Experiment artifacts (regenerable from code / historical — not for shared repo)
+experiments/**/*.parquet
+experiments/**/*.png
+experiments/**/_backups/
+experiments/**/_partial/

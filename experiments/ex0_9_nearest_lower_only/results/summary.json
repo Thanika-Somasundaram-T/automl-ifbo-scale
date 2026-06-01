@@ -1,0 +1,56 @@
+{
+  "experiment": "ex0_9_nearest_lower_only",
+  "raw_parquet": "demo_analysis/warmstart_runs_flattened.parquet",
+  "model_path": ".model",
+  "model_version": "0.0.1",
+  "policy": "nearest_lower_only",
+  "hp_slice": {
+    "method": "paws",
+    "base_N": 14562560,
+    "shrink": 0.4,
+    "tkpm": 20.0,
+    "target_N": [
+      32270848,
+      77124608,
+      134561280,
+      287183360,
+      610488320
+    ]
+  },
+  "obs_fracs": [
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    0.9
+  ],
+  "ylim": [
+    1.5,
+    4.5
+  ],
+  "predicted_targets": [
+    77124608,
+    134561280,
+    287183360,
+    610488320
+  ],
+  "skipped_targets": [
+    32270848
+  ],
+  "n_prediction_rows": 39598,
+  "seed": 0,
+  "device": "cuda",
+  "normalization_policy": "LOO log-loss range over all non-query PAWS slice trajectories",
+  "context_size_by_target": {
+    "77124608": 2,
+    "134561280": 2,
+    "287183360": 2,
+    "610488320": 2
+  },
+  "nearest_partner_target_N_by_target": {
+    "77124608": 32270848,
+    "134561280": 77124608,
+    "287183360": 134561280,
+    "610488320": 287183360
+  }
+}
