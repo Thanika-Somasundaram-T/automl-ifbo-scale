@@ -32,3 +32,7 @@ experiments/**/*.parquet
 experiments/**/*.png
 experiments/**/_backups/
 experiments/**/_partial/
+
+# Exception: keep per-obs line/curve plots (audited this session).
+# _summary/ headline figures stay ignored until audited.
+!experiments/**/plots/obs_*/**/*.png
