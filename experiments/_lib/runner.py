@@ -24,7 +24,14 @@ from experiments._lib.common import (
 )
 from experiments._lib.data import add_normalized_hps, build_curve_cache, filter_paws, load_processed
 from experiments._lib.predict_one import predict_one
-from experiments._lib.shards import merge_shards, shard_tag
+from experiments._lib.shards import (
+    finalize_shard,
+    flush_inprogress,
+    inprogress_path,
+    load_done_trajectory_ids,
+    merge_shards,
+    shard_tag,
+)
 
 
 def build_parser(
@@ -44,6 +51,8 @@ def build_parser(
                         help="Fixed context size for policies that sample a random subset.")
     parser.add_argument("--max-targets-per-scale", type=int, default=None,
                         help="Limit targets per query_target_N for smoke testing.")
+    parser.add_argument("--checkpoint-every", type=int, default=5,
+                        help="Flush in-progress shard + log every N trajectories (mid-shard crash safety).")
     return parser
 
 
@@ -87,18 +96,29 @@ def run_policies(policies: list[str], args: argparse.Namespace, registry: Module
 
     rng = np.random.RandomState(args.seed)
 
+    checkpoint_every = max(1, int(getattr(args, "checkpoint_every", 5)))
     shard_paths: list[Path] = []
     for policy in policies:
         for obs_frac in args.obs_fracs:
-            shard = partial_dir / f"{policy}__obs{shard_tag(obs_frac)}.parquet"
+            tag = shard_tag(obs_frac)
+            shard = partial_dir / f"{policy}__obs{tag}.parquet"
             shard_paths.append(shard)
             if shard.exists():
                 print(f"[resume] skipping {policy} obs={obs_frac:.2f}")
                 continue
 
-            frames = []
+            # Mid-shard resume: reload any trajectories already persisted before a crash.
+            inprogress = inprogress_path(partial_dir, policy, tag)
+            done_ids = load_done_trajectory_ids(inprogress)
+            frames = [pd.read_parquet(inprogress)] if done_ids else []
+            if done_ids:
+                print(f"[resume] {policy} obs={obs_frac:.2f}: {len(done_ids)} trajectories already done, continuing", flush=True)
+
             skipped = 0
-            for target_id in target_ids:
+            total = len(target_ids)
+            for i, target_id in enumerate(target_ids, start=1):
+                if target_id in done_ids:
+                    continue
                 target_row = cache[target_id]["row"]
                 query_target_n = float(target_row["target_N"])
 
@@ -121,13 +141,20 @@ def run_policies(policies: list[str], args: argparse.Namespace, registry: Module
 
                 frames.append(predict_one(model, cache, target_id, obs_frac, policy, partner_ids, registry))
 
+                # Progress log + crash-safe intra-shard checkpoint.
+                if i % checkpoint_every == 0:
+                    flush_inprogress(frames, inprogress)
+                    print(f"  [{policy} obs={obs_frac:.2f}] {i}/{total} trajectories", flush=True)
+
             if skipped:
                 print(f"  [{policy} obs={obs_frac:.2f}] skipped {skipped} targets (no eligible context)")
 
             if frames:
-                chunk = pd.concat(frames, ignore_index=True)
-                chunk.to_parquet(shard, index=False)
-                print(f"[checkpoint] {shard.name} ({len(chunk)} rows)")
+                # Final flush, then atomically promote in-progress -> final shard.
+                flush_inprogress(frames, inprogress)
+                finalize_shard(inprogress, shard)
+                n_rows = sum(len(f) for f in frames)
+                print(f"[checkpoint] {shard.name} ({n_rows} rows)")
             else:
                 print(f"[warning] {policy} obs={obs_frac:.2f}: no predictions generated")
 
