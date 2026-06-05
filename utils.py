@@ -6,6 +6,8 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from ifbo import Curve
 
+GLOBAL_LOG_VAL_MIN = 1.7854115962982178
+GLOBAL_LOG_VAL_MAX = 10.984582901000977
 
 def get_device():
     """
