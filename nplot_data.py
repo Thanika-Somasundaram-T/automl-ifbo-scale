@@ -9,8 +9,8 @@ from train.predict import normalize_log_loss_curve
 
 # ── paths ─────────────────────────────────────────────────────
 EXPERIMENTS_PATH = "experiments.json"
-PREDICTIONS_PATH = "ablation_2_all_context_predict_77/base14562560_target77124608_obs20.json"
-OUTPUT_DIR       = "ablation_2_all_context_predict_77/base14562560"
+PREDICTIONS_PATH = "a5_predicting_135_only_feeding_135/base14562560_target134561280_obs0.json"
+OUTPUT_DIR       = "a5_predicting_135_only_feeding_135/plot"
 # ─────────────────────────────────────────────────────────────
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -53,13 +53,24 @@ for run_key, pred in predictions.items():
     gt_loss      = normalize_log_loss_curve(gt_loss_real, global_min, global_max)
 
     # ── normalized time axis [0, 1] ───────────────────────────
-    gt_t     = gt_flops / (gt_flops[-1] + 1e-8)
-    n_observe  = max(2, int(len(gt_t) * obs_frac))
-    obs_t      = gt_t[:n_observe]
-    obs_loss   = gt_loss[:n_observe]
-    future_t   = gt_t[n_observe:]
-    future_loss= gt_loss[n_observe:]
-    cutoff_t   = gt_t[min(n_observe, len(gt_t) - 1)]
+    gt_t      = gt_flops / (gt_flops[-1] + 1e-8)
+    n_observe = int(len(gt_t) * obs_frac)   # 0 is valid now
+
+    obs_t       = gt_t[:n_observe]           # empty array if obs_frac=0
+    obs_loss    = gt_loss[:n_observe]        # empty array if obs_frac=0
+    future_t    = gt_t[n_observe:]           # full array if obs_frac=0
+    future_loss = gt_loss[n_observe:]        # full array if obs_frac=0
+
+    # safe cutoff — if no observation, cutoff is at t=0
+    cutoff_t        = gt_t[n_observe] if n_observe < len(gt_t) else gt_t[-1]
+    has_obs         = n_observe > 0
+    loss_at_cutoff  = float(obs_loss[-1])  if has_obs else float(gt_loss[0])
+    loss_drop_obs   = float(obs_loss[0]) - float(obs_loss[-1]) if has_obs else 0.0
+    loss_drop_total = float(gt_loss[0])  - float(gt_loss[-1])
+    pct_drop_obs    = loss_drop_obs / (loss_drop_total + 1e-8) * 100
+
+    # safe index for info panel
+    obs_idx         = max(0, n_observe - 1)
 
     median = np.array(pred["median"])
     q05    = np.array(pred["q05"])
@@ -78,11 +89,6 @@ for run_key, pred in predictions.items():
     ci_width        = float(q95[-1]) - float(q05[-1])
     true_in_ci      = float(q05[-1]) <= true_final <= float(q95[-1])
 
-    loss_at_cutoff  = float(obs_loss[-1])
-    loss_drop_obs   = float(obs_loss[0])  - float(obs_loss[-1])
-    loss_drop_total = float(gt_loss[0])   - float(gt_loss[-1])
-    pct_drop_obs    = loss_drop_obs / (loss_drop_total + 1e-8) * 100
-
     # ── layout ────────────────────────────────────────────────
     fig    = plt.figure(figsize=(16, 7), facecolor="#f9f9f9")
     gs     = gridspec.GridSpec(1, 2, width_ratios=[3, 1], figure=fig)
@@ -94,16 +100,21 @@ for run_key, pred in predictions.items():
     axinfo.axis("off")
 
     # ── main plot ─────────────────────────────────────────────
-    ax.axvspan(gt_t[0], obs_t[-1],
-               color="#DBEAFE", alpha=0.4, label="_nolegend_")
 
-    ax.plot(obs_t, obs_loss,
-            color="#2563EB", linewidth=2.5,
-            label=f"Ground truth — observed ({int(obs_frac*100)}%)")
+    # shaded observed region — skip if no observation
+    if has_obs:
+        ax.axvspan(gt_t[0], obs_t[-1],
+                   color="#DBEAFE", alpha=0.4, label="_nolegend_")
+        ax.plot(obs_t, obs_loss,
+                color="#2563EB", linewidth=2.5,
+                label=f"Ground truth — observed ({int(obs_frac*100)}%)")
 
+    # full ground truth shown as unobserved
     ax.plot(future_t, future_loss,
-            color="#2563EB", linewidth=2.5, alpha=0.35,
-            label="Ground truth — unobserved (held out)")
+            color="#2563EB", linewidth=2.5,
+            alpha=0.35 if has_obs else 1.0,
+            label="Ground truth — unobserved (held out)" if has_obs
+                  else "Ground truth (fully unobserved)")
 
     ax.plot(t_pred, median,
             color="#DC2626", linewidth=2.5,
@@ -125,12 +136,13 @@ for run_key, pred in predictions.items():
         fontsize=8, color="#2563EB",
         arrowprops=dict(arrowstyle="->", color="#2563EB", lw=1.0))
 
-    ax.annotate(
-        f"Cutoff\n{loss_at_cutoff:.3f} norm",
-        xy=(cutoff_t, loss_at_cutoff),
-        xytext=(20, -40), textcoords="offset points",
-        fontsize=8, color="#6B7280",
-        arrowprops=dict(arrowstyle="->", color="#6B7280", lw=1.0))
+    if has_obs:
+        ax.annotate(
+            f"Cutoff\n{loss_at_cutoff:.3f} norm",
+            xy=(cutoff_t, loss_at_cutoff),
+            xytext=(20, -40), textcoords="offset points",
+            fontsize=8, color="#6B7280",
+            arrowprops=dict(arrowstyle="->", color="#6B7280", lw=1.0))
 
     ax.annotate(
         f"True final\n{true_final:.4f} norm\n({true_final_real:.4f} real)",
@@ -189,21 +201,21 @@ for run_key, pred in predictions.items():
         ]),
         ("OBSERVATION", [
             ("Obs fraction",      f"{int(obs_frac*100)}%"),
-            ("Obs FLOPs",         f"{gt_flops[n_observe-1]/1e15:.2f} PFLOPs"),
+            ("Obs FLOPs",         f"{gt_flops[obs_idx]/1e15:.2f} PFLOPs" if has_obs else "none"),
             ("Obs checkpoints",   f"{n_observe}"),
             ("Loss at start",     f"{gt_loss_real[0]:.4f} ({gt_loss[0]:.3f} norm)"),
-            ("Loss at cutoff",    f"{gt_loss_real[n_observe-1]:.4f} ({loss_at_cutoff:.3f} norm)"),
-            ("Drop observed",     f"{loss_drop_obs:.4f} ({pct_drop_obs:.0f}%)"),
+            ("Loss at cutoff",    f"{gt_loss_real[obs_idx]:.4f} ({loss_at_cutoff:.3f} norm)" if has_obs else "n/a"),
+            ("Drop observed",     f"{loss_drop_obs:.4f} ({pct_drop_obs:.0f}%)" if has_obs else "n/a"),
         ]),
         ("PREDICTION", [
-            ("True final (real & norm)", f"{true_final_real:.4f} {true_final:.4f}"),
-            ("Pred final (real)", f"{pred_final_real:.4f} {pred_final:.4f}"),
-            ("Abs err (real & norm )", f"{abs_err_real:.4f} {abs_err_norm:.4f}"),
-            ("Rel error (real)",  f"{rel_err:.2f}%"),
-            ("90% CI width",      f"{ci_width:.4f}"),
-            ("CI q05",            f"{float(q05[-1]):.4f}"),
-            ("CI q95",            f"{float(q95[-1]):.4f}"),
-            ("True in CI",        "✓ yes" if true_in_ci else "✗ no"),
+            ("True final (real & norm)", f"{true_final_real:.4f} / {true_final:.4f}"),
+            ("Pred final (real & norm)", f"{pred_final_real:.4f} / {pred_final:.4f}"),
+            ("Abs err (real & norm)",    f"{abs_err_real:.4f} / {abs_err_norm:.4f}"),
+            ("Rel error (real)",         f"{rel_err:.2f}%"),
+            ("90% CI width",             f"{ci_width:.4f}"),
+            ("CI q05",                   f"{float(q05[-1]):.4f}"),
+            ("CI q95",                   f"{float(q95[-1]):.4f}"),
+            ("True in CI",               "✓ yes" if true_in_ci else "✗ no"),
         ]),
     ]
 

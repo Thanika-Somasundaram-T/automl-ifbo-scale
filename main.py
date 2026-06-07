@@ -13,7 +13,6 @@ from train.predict import (
     predict
 )
 
-
 def main():
     device = get_device()
 
@@ -55,7 +54,6 @@ def main():
     # Run NePS
     # -------------------------
     neps.run(**neps_config)
-
 
 if __name__ == "__main__":
     main()
