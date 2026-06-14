@@ -9,233 +9,69 @@ import numpy as np
 from ifbo.surrogate import FTPFN
 from ifbo import Curve
 
+from utils import normalize_hyperparameters, normalize_log_loss_curve, subsample_curve
+
 
 # ============================================================
 # Config
 # ============================================================
 
-DATA_PATH = "./experiments.json"
+DATA_PATH = "./all_curves.json"
 
-SAVE_DIR = "./a5_predicting_135_only_feeding_135"
+SAVE_DIR = "./june/a1_predicting_32_feeding_only_610"
 os.makedirs(SAVE_DIR, exist_ok=True)
-
-
-# ============================================================
-# Device
-# ============================================================
-
-def get_device():
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        return torch.device("mps")
-    return torch.device("cpu")
-
-
-# ============================================================
-# Load data
-# ============================================================
-
-def load_data(path):
-    """
-    Load experiments.json into dataframe.
-    One row = one complete training run.
-    """
-
-    with open(path, "r") as f:
-        data = json.load(f)
-
-    rows = []
-
-    for run_key, run_data in data.items():
-        hp = run_data["hyperparameters"]
-        curve = run_data["curve"]
-
-        rows.append(
-            {
-                "run_key": run_key,
-
-                # scale
-                "base_N": hp["base_N"],
-                "target_N": hp["target_N"],
-
-                # optimization
-                "max_lr": hp["max_lr"],
-                "shrinking": hp.get("shrink", 1.0),
-                "tkpm": hp["tkpm"],
-
-                # architecture
-                "n_embd": hp["n_embd"],
-                "n_head": hp["n_head"],
-                "g_width": hp.get("g_width", 0.0),
-                "g_N": hp.get("g_N", 0.0),
-
-                # curves
-                "tokens": np.asarray(curve["tokens"]),
-                "val_loss": np.asarray(curve["val_loss"]),
-                "train_loss": np.asarray(curve["train_loss"]),
-                "flops": np.asarray(curve["flops"]),
-            }
-        )
-
-    return pd.DataFrame(rows)
-
-
-# ============================================================
-# Loss normalization
-# ============================================================
-
-def normalize_log_loss_curve(val_loss_list, global_min, global_max):
-
-    val_loss = np.asarray(val_loss_list, dtype=np.float64)
-
-    log_curve = np.log(val_loss + 1e-8)
-    log_min = np.log(global_min + 1e-8)
-    log_max = np.log(global_max + 1e-8)
-
-    if abs(log_max - log_min) < 1e-8:
-        return np.zeros_like(log_curve)
-
-    norm = (log_curve - log_min) / (log_max - log_min)
-
-    return np.clip(norm, 0.0, 1.0)
-
-
-# ============================================================
-# Hyperparameter normalization
-# ============================================================
-
-def normalize_hyperparameters(row, df):
-
-    def get_minmax(col):
-        return df[col].min(), df[col].max()
-
-    b_min, b_max = get_minmax("base_N")
-    t_min, t_max = get_minmax("target_N")
-
-    lr_min, lr_max = get_minmax("max_lr")
-
-    sh_min, sh_max = get_minmax("shrinking")
-    tk_min, tk_max = get_minmax("tkpm")
-
-    emb_min, emb_max = get_minmax("n_embd")
-    head_min, head_max = get_minmax("n_head")
-
-    gw_min, gw_max = get_minmax("g_width")
-    gn_min, gn_max = get_minmax("g_N")
-
-    base_norm = (
-        (np.log2(row["base_N"]) - np.log2(b_min))
-        / (np.log2(b_max) - np.log2(b_min) + 1e-8)
-    )
-
-    target_norm = (
-        (np.log2(row["target_N"]) - np.log2(t_min))
-        / (np.log2(t_max) - np.log2(t_min) + 1e-8)
-    )
-
-    lr_norm = (
-        (np.log10(row["max_lr"]) - np.log10(lr_min))
-        / (np.log10(lr_max) - np.log10(lr_min) + 1e-8)
-    )
-
-    shrink_norm = (
-        (row["shrinking"] - sh_min)
-        / (sh_max - sh_min + 1e-8)
-    )
-
-    tkpm_norm = (
-        (row["tkpm"] - tk_min)
-        / (tk_max - tk_min + 1e-8)
-    )
-
-    emb_norm = (
-        (row["n_embd"] - emb_min)
-        / (emb_max - emb_min + 1e-8)
-    )
-
-    head_norm = (
-        (row["n_head"] - head_min)
-        / (head_max - head_min + 1e-8)
-    )
-
-    gw_norm = (
-        (row["g_width"] - gw_min)
-        / (gw_max - gw_min + 1e-8)
-    )
-
-    gn_norm = (
-        (row["g_N"] - gn_min)
-        / (gn_max - gn_min + 1e-8)
-    )
-
-    return torch.tensor(
-        [
-            base_norm,
-            target_norm,
-            lr_norm,
-            shrink_norm,
-            tkpm_norm,
-            emb_norm,
-            head_norm,
-            gw_norm,
-            gn_norm,
-        ],
-        dtype=torch.float32,
-    )
-
 
 # ============================================================
 # Subsampling
 # ============================================================
 
-def subsample_curve(t, y, n_total=200, warmstart_frac=0.7):
-    t = np.array(t)
-    y = np.array(y)
+# def subsample_curve(t, y, n_total=200, warmstart_frac=0.7):
+#     t = np.array(t)
+#     y = np.array(y)
     
-    if len(t) <= n_total:
-        return t, y
+#     if len(t) <= n_total:
+#         return t, y
     
-    n_post  = int(n_total * 0.50)
-    n_mid   = int(n_total * 0.25)
-    n_early = n_total - n_post - n_mid
+#     n_post  = int(n_total * 0.50)
+#     n_mid   = int(n_total * 0.25)
+#     n_early = n_total - n_post - n_mid
 
-    def sample_zone(mask, n):
-        idx = np.where(mask)[0]
-        if len(idx) == 0:
-            return np.array([], dtype=int)   # ← handle empty zone
-        if len(idx) <= n:
-            return idx
-        positions = np.round(np.linspace(0, len(idx) - 1, n)).astype(int)
-        return idx[positions]
+#     def sample_zone(mask, n):
+#         idx = np.where(mask)[0]
+#         if len(idx) == 0:
+#             return np.array([], dtype=int)   # ← handle empty zone
+#         if len(idx) <= n:
+#             return idx
+#         positions = np.round(np.linspace(0, len(idx) - 1, n)).astype(int)
+#         return idx[positions]
 
-    early_idx = sample_zone(t < 0.5,                           n_early)
-    mid_idx   = sample_zone((t >= 0.5) & (t < warmstart_frac), n_mid)
-    post_idx  = sample_zone(t >= warmstart_frac,                n_post)
+#     early_idx = sample_zone(t < 0.5,                           n_early)
+#     mid_idx   = sample_zone((t >= 0.5) & (t < warmstart_frac), n_mid)
+#     post_idx  = sample_zone(t >= warmstart_frac,                n_post)
 
-    # always assigned now, even if some zones are empty
-    all_idx = np.sort(np.unique(np.concatenate([early_idx, mid_idx, post_idx])))
-    print(f"***** Subsampling: {len(all_idx)} points selected out of {len(t)}")
+#     # always assigned now, even if some zones are empty
+#     all_idx = np.sort(np.unique(np.concatenate([early_idx, mid_idx, post_idx])))
+#     print(f"***** Subsampling: {len(all_idx)} points selected out of {len(t)}")
 
-    return t[all_idx], y[all_idx]
+#     return t[all_idx], y[all_idx]
 
 
-def subsample_partial_target(t, y, n_total=200):
-    """
-    For partial target curves — subsample evenly across the observed window.
-    """
-    t = np.array(t)
-    y = np.array(y)
+# def subsample_partial_target(t, y, n_total=200):
+#     """
+#     For partial target curves — subsample evenly across the observed window.
+#     """
+#     t = np.array(t)
+#     y = np.array(y)
 
-    if len(t) <= n_total:
-        return t, y
+#     if len(t) <= n_total:
+#         return t, y
 
-    positions = np.round(np.linspace(0, len(t) - 1, n_total)).astype(int)
-    positions = np.unique(positions)
+#     positions = np.round(np.linspace(0, len(t) - 1, n_total)).astype(int)
+#     positions = np.unique(positions)
 
-    print(f"  ✓ Partial target subsampling: {len(positions)} points evenly sampled out of {len(t)}")
+#     print(f"  ✓ Partial target subsampling: {len(positions)} points evenly sampled out of {len(t)}")
 
-    return t[positions], y[positions]
+#     return t[positions], y[positions]
 
 
 # ============================================================
@@ -244,14 +80,11 @@ def subsample_partial_target(t, y, n_total=200):
 
 def build_base_context_curves(
     df,
-    base_n,
     target_n,
-    global_min,
-    global_max,
 ):
 
     curves = []
-    subset = df[(df["target_N"] == target_n)]
+    subset = df[(df["target_N"] == 610488320)]
 
     for _, row in subset.iterrows():
         
@@ -274,8 +107,8 @@ def build_base_context_curves(
 
         y_norm = normalize_log_loss_curve(
             val_loss,
-            global_min,
-            global_max,
+            df,
+            target_N=target_n,
         )
 
         t_raw = flops / (flops[-1] + 1e-8)
@@ -324,8 +157,7 @@ def build_partial_target_curve(
     df,
     row,
     observe_fraction,
-    global_min,
-    global_max,
+    target_n,
 ):
 
     if observe_fraction <= 0.0:
@@ -348,25 +180,6 @@ def build_partial_target_curve(
 
     t_flops = flops / (flops[-1] + 1e-8)
 
-    # mask = t_flops <= observe_fraction
-
-    # t_partial = t_flops[mask]
-    # y_partial = val_loss[mask]
-
-    # print(
-    #     f"  ✓ Partial observation: {len(t_partial)} points out of {len(flops)}"
-    # )
-
-    # if len(t_partial) < 2:
-
-    #     print(
-    #         "  ⚠️ Not enough points in partial curve, using first 2 points as fallback"
-    #     )
-
-    #     t_partial = t_flops[:2]
-    #     y_partial = val_loss[:2]
-        
-    # how many points to observe based on fraction
     n_observe = max(0, int(len(t_flops) * observe_fraction))
 
     # slice directly — no floating point boundary issues
@@ -377,11 +190,11 @@ def build_partial_target_curve(
 
     y_norm = normalize_log_loss_curve(
         y_partial,
-        global_min,
-        global_max,
+        df,
+        target_N=target_n,
     )
 
-    t_sub, y_sub = subsample_partial_target(
+    t_sub, y_sub = subsample_curve(
         t_partial,
         y_norm,
     )
@@ -465,14 +278,13 @@ def save_prediction(
 # ============================================================
 # Predict
 # ============================================================
+    
 
 def predict(
     scale_pair,
     observe_fraction,
     df,
     device,
-    global_min,
-    global_max,
 ):
 
     print("\n" + "=" * 60)
@@ -484,14 +296,12 @@ def predict(
     if isinstance(scale_pair, str):
         scale_pair = json.loads(scale_pair)
 
-    base_n, target_n = scale_pair
+    _, target_n = scale_pair
+    context_curves = []
 
     context_curves = build_base_context_curves(
         df=df,
-        base_n=14562560,
         target_n=target_n,
-        global_min=global_min,
-        global_max=global_max,
     )
 
     print(
@@ -519,13 +329,13 @@ def predict(
             "testttttt      ",
             row["run_key"],
         )
+        base_n, target_n = row["base_N"], row["target_N"]
 
         partial_target = build_partial_target_curve(
             df,
             row,
             observe_fraction,
-            global_min,
-            global_max,
+            target_n,
         )
 
         partial_added = context_curves + ([partial_target] if partial_target is not None else [])
@@ -574,10 +384,9 @@ def predict(
 
         config_key = make_config_key(row)
 
-        # cleaner filename — one file per scale pair + observation level
         out_file = os.path.join(
             SAVE_DIR,
-            f"base{base_n}_target{target_n}_obs{int(observe_fraction*100)}.json"
+            f"target{target_n}_obs{int(observe_fraction*100)}.json"
         )
 
         result = {

@@ -1,13 +1,12 @@
+import json
 import os
 import math
+import pandas as pd
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from ifbo import Curve
-
-GLOBAL_LOG_VAL_MIN = 1.7854115962982178
-GLOBAL_LOG_VAL_MAX = 10.984582901000977
 
 def get_device():
     """
@@ -28,242 +27,160 @@ def get_device():
         print("Using CPU.")
     return device
 
-def normalize_hyperparameters(lr, hidden_dim, weight_decay):
-    """
-    Normalize hyperparameters to [0, 1] range for FT-PFN.
+# ============================================================
 
-    Learning rate is normalized in log-scale.
+def safe_bounds(lower, upper, min_value=1e-8):
+        # ensures valid positive and non-zero range
+        lower = max(lower, min_value)
+        upper = max(upper, lower + min_value)
+        return lower, upper
 
-    Args:
-        lr : float
-            Learning rate.
-        num_layer : int
-            Number of layers.
-        hidden_dim : int
-            Hidden layer dimension.
-        weight_decay : float
-            Weight decay value.
+def normalize_hyperparameters(row, df, clip=True):
+    EPS = 1e-8
 
-    Returns:
-        torch.Tensor
-            Normalized hyperparameter vector.
-    """
-    lr_min, lr_max = 1e-6, 3e-2
-    hidden_min, hidden_max = 2, 256
-    wd_min, wd_max = 0.0, 0.1
-    # layer_min, layer_max = 2, 10
+    def get_minmax(col):
+        return df[col].min(), df[col].max()
 
-    lr_norm = (
-        math.log10(lr) - math.log10(lr_min)
-    ) / (math.log10(lr_max) - math.log10(lr_min))
-
-    hidden_norm = (
-        math.log2(hidden_dim) - math.log2(hidden_min)
-    ) / (math.log2(hidden_max) - math.log2(hidden_min))
-
-    weight_decay_norm = (weight_decay - wd_min) / (wd_max - wd_min)
-    # layer_norm = (num_layer - layer_min) / (layer_max - layer_min)  # BUG FIX
-
-    return torch.tensor([
-        0,
-        0,
-        0,
-    ], dtype=torch.float32).flatten().clamp(0.0, 1.0)
-
-def parse_key(key):
-    """
-    Parse a hyperparameter key string.
-
-    Example:
-        'lr3e-02_hd128_wd0.001'
-
-    Args:
-        key : str
-            Encoded hyperparameter string.
-
-    Returns:
-        tuple
-            (learning_rate, hidden_dim, weight_decay)
-    """
-    parts = key.split("_")
-    lr = float(parts[0].replace("lr", ""))
-    hd = float(parts[1].replace("hd", ""))
-    wd = float(parts[2].replace("wd", ""))
-    return lr, hd, wd
-
-def get_fashion_mnist_loaders(batch_size=128, normalise=True):
-    """
-    Return train and test dataloaders for Fashion-MNIST.
-
-    Args:
-        batch_size : int, optional
-            Batch size.
-        normalise : bool, optional
-            Whether to apply dataset normalization.
-
-    Returns:
-        train_loader, test_loader
-            PyTorch DataLoader objects.
-    """
-    transform_list = [transforms.ToTensor()]
-
-    if normalise:
-        transform_list.append(
-            transforms.Normalize((0.2860,), (0.3530,))
+    def add_buffer(lower, upper, buffer_pct=0.1):
+        width = upper - lower
+        return (
+            lower - buffer_pct * width,
+            upper + buffer_pct * width,
         )
 
-    transform = transforms.Compose(transform_list)
 
-    train_dataset = datasets.FashionMNIST(
-        root="./data", train=True, download=True, transform=transform
+
+    def minmax_norm(x, lower, upper):
+        return (x - lower) / (upper - lower + EPS)
+
+    def clip01(x):
+        return np.clip(x, 0.0, 1.0)
+
+    # -----------------------
+    # Compute buffered ranges
+    # -----------------------
+    b_min, b_max = add_buffer(*get_minmax("base_N"), buffer_pct=0.1)
+    sh_min, sh_max = add_buffer(*get_minmax("shrinking"), buffer_pct=0.1)
+    tk_min, tk_max = add_buffer(*get_minmax("tkpm"), buffer_pct=0.1)
+    emb_min, emb_max = add_buffer(*get_minmax("n_embd"), buffer_pct=0.1)
+
+    # critical safety fix for log2
+    b_min, b_max = safe_bounds(b_min, b_max, EPS)
+
+    # -----------------------
+    # Normalization
+    # -----------------------
+
+    base_val = np.log2(np.clip(row["base_N"], b_min, b_max))
+    base_norm = minmax_norm(
+        base_val,
+        np.log2(b_min),
+        np.log2(b_max),
     )
-    test_dataset = datasets.FashionMNIST(
-        root="./data", train=False, download=True, transform=transform
+
+    shrink_norm = minmax_norm(row["shrinking"], sh_min, sh_max)
+    tkpm_norm = minmax_norm(row["tkpm"], tk_min, tk_max)
+    emb_norm = minmax_norm(row["n_embd"], emb_min, emb_max)
+
+    # -----------------------
+    # Optional strict clipping
+    # -----------------------
+    if clip:
+        base_norm = clip01(base_norm)
+        shrink_norm = clip01(shrink_norm)
+        tkpm_norm = clip01(tkpm_norm)
+        emb_norm = clip01(emb_norm)
+
+    return torch.tensor(
+        [tkpm_norm,  emb_norm, shrink_norm, base_norm],
+        dtype=torch.float32,
     )
+    
+def compute_loo(df, target_N=None, buffer=0.05):
+    all_losses = np.concatenate(df["val_loss"].values)
+    log_others   = np.log(np.clip(all_losses, 1e-8, None))
+    lo           = float(log_others.min())
+    hi           = float(log_others.max())
+    margin       = (hi - lo) * buffer
+    v_min, v_max = safe_bounds(lo - margin, hi + margin, min_value=1e-8)
+    return  v_min, v_max
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    return train_loader, test_loader
+def normalize_log_loss_curve(val_loss_list,  df, target_N=None):
 
-def min_max_normalize(y):
+    val_loss = np.asarray(val_loss_list, dtype=np.float64)
+
+    log_curve = np.log(val_loss + 1e-8)
+    log_min, log_max = compute_loo(df, target_N, buffer=0.05)
+    print("dfff. ", log_min, log_max)
+
+    if abs(log_max - log_min) < 1e-8:
+        return np.zeros_like(log_curve)
+
+    norm = (log_curve - log_min) / (log_max - log_min)
+
+    return np.clip(norm, 0.0, 1.0)
+
+
+def load_data(path):
     """
-    Normalize values using per-array min-max scaling.
-
-    Args:
-        y : list or torch.Tensor
-            Input values to normalize.
-
-    Returns:
-        torch.Tensor
-            Min-max normalized values.
+    Load experiments.json into dataframe.
+    One row = one complete training run.
     """
-    if isinstance(y, list):
-        y = torch.tensor(y, dtype=torch.float32)
 
-    y_min = y.min()
-    y_max = y.max()
+    with open(path, "r") as f:
+        data = json.load(f)
 
-    if y_max == y_min:
-        return torch.zeros_like(y)
+    rows = []
 
-    return (y - y_min) / (y_max - y_min)
+    for run_key, run_data in data.items():
+        hp = run_data["hyperparameters"]
+        curve = run_data["curve"]
 
-def fixed_range_normalize(y, y_min=0.0, y_max=1.0):
-    """
-    Normalize values to [0, 1] using a fixed range.
+        rows.append(
+            {
+                "run_key": run_key,
 
-    Args:
-        y : array-like
-            Input values to normalize.
-        y_min : float, optional
-            Minimum value of the fixed range.
-        y_max : float, optional
-            Maximum value of the fixed range.
+                # scale
+                "base_N": hp["base_N"],
+                "target_N": hp["target_N"],
 
-    Returns:
-        np.ndarray
-            Normalized values clipped to [0, 1].
-    """
-    y = np.array(y, dtype=float)
-    y_clipped = np.clip(y, y_min, y_max)
-    return (y_clipped - y_min) / (y_max - y_min)
+                # optimization
+                "max_lr": hp["max_lr"],
+                "shrinking": hp.get("shrink", 1.0),
+                "tkpm": hp["tkpm"],
 
-def normalize_log_loss_curve(curve_values, loss_min: float = 1e-3, loss_max: float = None, num_classes: int = 10) -> np.ndarray:
-    """
-    Convert a validation loss curve into IFBO-compatible performance values.
+                # architecture
+                "n_embd": hp["n_embd"],
+                "n_head": hp["n_head"],
+                "g_width": hp.get("g_width", 0.0),
+                "g_N": hp.get("g_N", 0.0),
 
-    Steps:
-        1) Log-transform losses
-        2) Min-max normalize in log-space using global bounds
-        3) Invert so higher = better
-        4) Clip to [0, 1]
+                # curves
+                "tokens": np.asarray(curve["tokens"]),
+                "val_loss": np.asarray(curve["val_loss"]),
+                "train_loss": np.asarray(curve["train_loss"]),
+                "flops": np.asarray(curve["flops"]),
+            }
+        )
 
-    Args:
-        curve_values : list or array-like
-            Raw validation loss values (>0).
-        loss_min : float
-            Global minimum expected loss (meta-parameter: 0.1 or 1e-3).
-        loss_max : float or None
-            Global maximum expected loss. If None, uses log2(num_classes).
-        num_classes : int
-            Number of dataset classes (10 for Fashion-MNIST).
-    """
-    if loss_max is None:
-        loss_max = math.log2(num_classes)  # 3.3219 for 10 classes
-
-    curve_values = np.array(curve_values, dtype=float)
-
-    if np.any(curve_values <= 0):
-        raise ValueError("Loss values must be positive for log transform.")
-
-    log_losses = np.log(curve_values)
-    log_min = np.log(loss_min)
-    log_max = np.log(loss_max)
-
-    norm = (log_losses - log_min) / (log_max - log_min)
-    y = 1.0 - norm
-    return np.clip(y, 0.0, 1.0)
+    return pd.DataFrame(rows)
 
 
-def unnormalize_pred(norm_curve, loss_min=1e-6, loss_max=1.0):
-    """
-    Convert normalized log-loss predictions back to actual NLL.
-    """
-    norm_curve = np.clip(norm_curve, 0.0, 1.0)
-    log_min = math.log(loss_min)
-    log_max = math.log(loss_max)
-    log_losses = log_min + (1.0 - norm_curve) * (log_max - log_min)
-    return np.exp(log_losses)
+def subsample_curve(t, y, n_total=10):
+    t = np.array(t)
+    y = np.array(y)
 
-def format_lr(lr):
-    # Always use scientific notation like 1e-05
-    return f"{lr:.0e}"
+    if len(t) <= n_total:
+        return t, y
 
-def generate_keys(hd):
-    lrs = [1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3]
-    wds = [0.0, 0.01]
+    # uniformly spaced indices across the full curve
+    idx = np.linspace(0, len(t) - 1, n_total)
+    idx = np.round(idx).astype(int)
 
-    keys = {}
-    idx = 1
+    # ensure uniqueness (just in case of rounding collisions)
+    idx = np.unique(idx)
 
-    for lr in lrs:
-        for wd in wds:
-            # lr_str = format_lr(lr)
-            lr_str = lr
-            key = f"layer4_lr{lr_str}_hd{hd}_wd{wd}_cosine"
-            keys[idx] = key
-            idx += 1
+    print(f"***** Subsampling: {len(idx)} points selected out of {len(t)}")
 
-    return keys
-
-
-def normalize_log_loss_curve_per_curve(curve_values) -> np.ndarray:
-    """
-    Normalize a validation loss curve using its own min/max (per-curve).
-
-    Steps:
-        1) Log-transform losses
-        2) Min-max normalize using curve-specific bounds
-        3) Invert so higher = better
-        4) Clip to [0, 1]
-    """
-    curve_values = np.array(curve_values, dtype=float)
-    print(curve_values.shape)
-
-    if np.any(curve_values <= 0):
-        raise ValueError("Loss values must be positive for log transform.")
-
-    log_losses = np.log(curve_values)
-
-    log_min = np.min(log_losses)
-    log_max = np.max(log_losses)
-
-    # Avoid division by zero (flat curve case)
-    if log_max == log_min:
-        return np.ones_like(log_losses)
-
-    norm = (log_losses - log_min) / (log_max - log_min)
-    y = 1.0 - norm
-
-    return np.clip(y, 0.0, 1.0)
+    return t[idx], y[idx]

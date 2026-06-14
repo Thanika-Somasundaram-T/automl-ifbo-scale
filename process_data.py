@@ -2,8 +2,8 @@ import pandas as pd
 import json
 
 
-DATA_PATH = "./warmstarting_data.csv"
-OUT_PATH = "./experiments.json"
+DATA_PATH = "./warm_data.csv"
+OUT_PATH = "./all_curves.json"
 
 
 def make_key(row):

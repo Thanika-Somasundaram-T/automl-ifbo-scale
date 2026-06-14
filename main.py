@@ -8,15 +8,13 @@ from pipeline import neps_wrapper
 from train.predict import (
     DATA_PATH,
     SAVE_DIR,
-    get_device,
-    load_data,
-    predict
 )
+from utils import get_device, load_data
 
 def main():
     device = get_device()
 
-    print("Loading experiments.json...")
+    print("Loading all_curves.json...")
     df = load_data(DATA_PATH)
 
     print(f"✓ Loaded {len(df)} runs")
@@ -26,12 +24,7 @@ def main():
     # -------------------------
     # FIXED: global loss computation
     # -------------------------
-    all_losses = np.concatenate(df["val_loss"].values)
 
-    global_min = float(np.min(all_losses))
-    global_max = float(np.max(all_losses))
-
-    print(f"  Global loss range: [{global_min:.4f}, {global_max:.4f}]")
 
     # -------------------------
     # Load NePS config
@@ -43,7 +36,7 @@ def main():
     # IMPORTANT: keep config NePS-safe
     # (avoid DataFrame / torch objects inside YAML config)
     # -------------------------
-    neps_config["evaluate_pipeline"] = neps_wrapper(df, device, global_min, global_max)
+    neps_config["evaluate_pipeline"] = neps_wrapper(df, device)
 
     # Pass only primitives (safe)
 

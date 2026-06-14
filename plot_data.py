@@ -5,12 +5,20 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.ticker import FuncFormatter
 
-from train.predict import normalize_log_loss_curve
+from utils import compute_loo, load_data, normalize_log_loss_curve, subsample_curve
 
-# ── paths — change these only ────────────────────────────────
-EXPERIMENTS_PATH = "experiments.json"
-PREDICTIONS_PATH = "ablation_1_target_full_curves_per_scale/base77124608_target134561280_obs0.json"
-OUTPUT_DIR       = "ablation_1_target_full_curves_per_scale/base77124608"
+# ── paths ─────────────────────────────────────────────────────
+EXPERIMENTS_PATH = "all_curves.json"
+PREDICTIONS_PATH = "june/a1_predicting_32_feeding_only_610/target32270848_obs90.json"
+OUTPUT_DIR       = "june/a1_predicting_32_feeding_only_610/90"
+
+# ── context curves to overlay ─────────────────────────────────
+# Set to None to disable, or provide a list/range of run keys.
+# Examples:
+#   CONTEXT_KEYS = None                          # no context overlay
+#   CONTEXT_KEYS = ["run_0", "run_1", "run_2"]  # explicit keys
+#   CONTEXT_KEYS = list(experiments.keys())[:10] # first 10 runs  ← set after loading
+CONTEXT_KEYS = None   # ← edit this after loading experiments if using a range
 # ─────────────────────────────────────────────────────────────
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -21,19 +29,32 @@ with open(EXPERIMENTS_PATH, "r") as f:
 with open(PREDICTIONS_PATH, "r") as f:
     predictions = json.load(f)
 
+# ── uncomment to set CONTEXT_KEYS by index range after loading ─
+# CONTEXT_KEYS = list(experiments.keys())[0:10]   # first 10
+# CONTEXT_KEYS = list(experiments.keys())          # all runs
+# ─────────────────────────────────────────────────────────────
+TARGET_N_THRESHOLD = 610488320
+CONTEXT_KEYS = [
+    k for k, v in experiments.items()
+    if v["hyperparameters"]["target_N"] == TARGET_N_THRESHOLD
+]
 
-def denormalize(y_norm, global_min, global_max):
-    print(global_min, global_max, "global min max")
-    log_min = np.log(global_min + 1e-8)
-    log_max = np.log(global_max + 1e-8)
+df = load_data(EXPERIMENTS_PATH)
+
+
+def denormalize(y_norm: np.ndarray) -> np.ndarray:
+    """Invert normalize_log_loss_curve: norm → real loss space."""
+    log_min, log_max = compute_loo(df=df, target_N=None, buffer=0.05)
+    y_norm  = np.clip(y_norm, 0.0, 1.0)
     log_val = y_norm * (log_max - log_min) + log_min
     return np.exp(log_val) - 1e-8
 
-all_val_losses = []
-for run in experiments.values():
-    all_val_losses.extend(run["curve"]["val_loss"])
-global_min = min(all_val_losses)
-global_max = max(all_val_losses)
+
+# ── context curve style ───────────────────────────────────────
+CONTEXT_COLOR   = "#CBE360"   # green — distinct from blue (GT) and red (pred)
+CONTEXT_ALPHA   = 0.07
+CONTEXT_LW      = 1.0
+
 
 for run_key, pred in predictions.items():
 
@@ -44,132 +65,182 @@ for run_key, pred in predictions.items():
     tkpm     = pred["tkpm"]
     max_lr   = pred["max_lr"]
 
-    gt         = experiments[run_key]["curve"]
-    gt_flops   = np.array(gt["flops"])
-    gt_loss    = normalize_log_loss_curve(np.array(gt["val_loss"]), global_min, global_max)
-    gt_tokens  = np.array(gt["tokens"])
+    gt           = experiments[run_key]["curve"]
+    gt_flops     = np.array(gt["flops"])
+    gt_tokens    = np.array(gt["tokens"])
+    gt_loss_real = np.array(gt["val_loss"])
 
-    n_observe    = max(2, int(len(gt_flops) * obs_frac))
-    obs_flops    = gt_flops[:n_observe]
-    obs_loss     = gt_loss[:n_observe]
-    future_flops = gt_flops[n_observe:]
-    future_loss  = gt_loss[n_observe:]
+    gt_loss_norm = normalize_log_loss_curve(gt_loss_real, df=df, target_N=None)
 
-    t_pred     = np.linspace(obs_frac, 1.0, len(pred["median"]))
-    pred_flops = t_pred * gt_flops[-1]
+    gt_t      = gt_flops / (gt_flops[-1] + 1e-8)
+    n_observe = int(len(gt_t) * obs_frac)
 
-    # median = denormalize(np.array(pred["median"]), global_min, global_max)
-    # q05    = denormalize(np.array(pred["q05"]),    global_min, global_max)
-    # q95    = denormalize(np.array(pred["q95"]),    global_min, global_max)
-    median = np.array(pred["median"]),
-    q05    = np.array(pred["q05"]),
-    q95    = np.array(pred["q95"]),
+    obs_t        = gt_t[:n_observe]
+    obs_loss     = gt_loss_real[:n_observe]
+    future_t     = gt_t[n_observe:]
+    future_loss  = gt_loss_real[n_observe:]
 
-    true_final  = gt_loss[-1]
-    pred_final  = median[-1]
+    cutoff_t        = gt_t[n_observe] if n_observe < len(gt_t) else gt_t[-1]
+    has_obs         = n_observe > 0
+    loss_at_cutoff  = float(obs_loss[-1])         if has_obs else float(gt_loss_real[0])
+    loss_drop_obs   = float(obs_loss[0]) - float(obs_loss[-1]) if has_obs else 0.0
+    loss_drop_total = float(gt_loss_real[0]) - float(gt_loss_real[-1])
+    pct_drop_obs    = loss_drop_obs / (loss_drop_total + 1e-8) * 100
+    obs_idx         = max(0, n_observe - 1)
+
+    median_norm = np.array(pred["median"])
+    q05_norm    = np.array(pred["q05"])
+    q95_norm    = np.array(pred["q95"])
+
+    median = denormalize(median_norm)
+    q05    = denormalize(q05_norm)
+    q95    = denormalize(q95_norm)
+
+    t_pred = np.linspace(obs_frac, 1.0, len(median))
+
+    print(f"\n[DEBUG] {run_key}")
+    print(f"  median[-1]     : {median[-1]:.6f}")
+    print(f"  q05[-1] (real) : {q05[-1]:.6f}  ← should be LOWER than median")
+    print(f"  q95[-1] (real) : {q95[-1]:.6f}  ← should be HIGHER than median")
+    print(f"  CI width       : {q95[-1] - q05[-1]:.6f}")
+
+    true_final  = float(gt_loss_real[-1])
+    pred_final  = float(median[-1])
     abs_err     = abs(pred_final - true_final)
-    rel_err     = abs_err / true_final * 100
-    ci_width    = q95[-1] - q05[-1]
-    true_in_ci  = q05[-1] <= true_final <= q95[-1]
+    rel_err     = abs_err / (true_final + 1e-8) * 100
+    ci_width    = float(q95[-1]) - float(q05[-1])
+    true_in_ci  = float(q05[-1]) <= true_final <= float(q95[-1])
 
-    # loss drop stats
-    loss_at_cutoff  = obs_loss[-1]
-    loss_drop_obs   = obs_loss[0] - obs_loss[-1]
-    loss_drop_total = gt_loss[0] - gt_loss[-1]
-    pct_drop_obs    = loss_drop_obs / loss_drop_total * 100
-
-    # ── layout: main plot left, info panel right ─────────────
-    fig = plt.figure(figsize=(16, 7), facecolor="#f9f9f9")
-    gs  = gridspec.GridSpec(1, 2, width_ratios=[3, 1], figure=fig)
+    # ── layout ────────────────────────────────────────────────
+    fig    = plt.figure(figsize=(16, 7), facecolor="#f9f9f9")
+    gs     = gridspec.GridSpec(1, 2, width_ratios=[3, 1], figure=fig)
     gs.update(wspace=0.05)
-
-    ax   = fig.add_subplot(gs[0])
+    ax     = fig.add_subplot(gs[0])
     axinfo = fig.add_subplot(gs[1])
     ax.set_facecolor("#f9f9f9")
     axinfo.set_facecolor("#f4f4f4")
     axinfo.axis("off")
 
-    # ── main plot ────────────────────────────────────────────
+    # ── context curves overlay ────────────────────────────────
+    context_plotted = 0
+    if CONTEXT_KEYS:
+        for i, ctx_key in enumerate(CONTEXT_KEYS):
+            if ctx_key == run_key:
+                continue                          # skip the target run itself
+            if ctx_key not in experiments:
+                continue
+            ctx       = experiments[ctx_key]["curve"]
+            ctx_flops = np.array(ctx["flops"])
+            ctx_loss  = np.array(ctx["val_loss"])
+            ctx_t     = ctx_flops / (ctx_flops[-1] + 1e-8)
+            label     = "Context curves" if context_plotted == 0 else "_nolegend_"
+            ax.plot(ctx_t, ctx_loss,
+                    color=CONTEXT_COLOR,
+                    alpha=CONTEXT_ALPHA,
+                    linewidth=CONTEXT_LW,
+                    label=label,
+                    zorder=1)                     # draw behind everything else
+            context_plotted += 1
 
-    # shaded observed region
-    ax.axvspan(gt_flops[0], obs_flops[-1],
-               color="#DBEAFE", alpha=0.4, label="_nolegend_")
+    # ── main plot ─────────────────────────────────────────────
+    if has_obs:
+        # ax.axvspan(gt_t[0], obs_t[-1],
+        #            color="#DBEAFE", alpha=0.4, label="_nolegend_")
+        ax.plot(obs_t, obs_loss,
+                color="#000000", linewidth=2.5, zorder=3, alpha=0.5 if has_obs else 1.0,
+                label=f"Ground truth — observed ({int(obs_frac*100)}%)")
 
-    # observed ground truth
-    ax.plot(obs_flops, obs_loss,
-            color="#2563EB", linewidth=2.5,
-            label=f"Ground truth — observed ({int(obs_frac*100)}%)")
+    ax.plot(future_t, future_loss,
+            color="#000000", linewidth=2.5, zorder=3,
+            alpha=1.0,
+            label="Ground truth — unobserved (held out)" if has_obs
+                  else "Ground truth (fully unobserved)")
 
-    # unobserved ground truth
-    ax.plot(future_flops, future_loss,
-            color="#2563EB", linewidth=2.5, alpha=0.35,
-            label="Ground truth — unobserved (held out)")
-
-    # IFBO median
-    ax.plot(pred_flops, median,
-            color="#DC2626", linewidth=2.5,
+    ax.plot(t_pred, median,
+            color="#2563EB", linewidth=2.5, zorder=4,
             label="IFBO median prediction")
 
-    # uncertainty band
-    ax.fill_between(pred_flops, q05, q95,
-                    color="#DC2626", alpha=0.12,
+    ax.fill_between(t_pred, q05, q95,
+                    color="#2563EB", alpha=0.12, zorder=2,
                     label="IFBO 90% CI")
 
-    # cutoff line
-    cutoff_flop = gt_flops[min(n_observe, len(gt_flops) - 1)]
-    ax.axvline(cutoff_flop, color="#6B7280",
-               linestyle="--", linewidth=1.8,
+    ax.axvline(cutoff_t, color="#6B7280",
+               linestyle="--", linewidth=1.0, zorder=5,
                label=f"Observation cutoff ({int(obs_frac*100)}%)")
 
-    # ── annotations ──────────────────────────────────────────
+    # ── annotations ───────────────────────────────────────────
+    ax.annotate(
+        f"Start\n{gt_loss_real[0]:.4f}",
+        xy=(gt_t[0], gt_loss_real[0]),
+        xytext=(30, 10), textcoords="offset points",
+        fontsize=8, color="#000000",
+        arrowprops=dict(arrowstyle="->", color="#000000", lw=1.0))
 
-    # annotate initial loss
-    ax.annotate(f"Start\n{gt_loss[0]:.3f}",
-                xy=(gt_flops[0], gt_loss[0]),
-                xytext=(30, 10), textcoords="offset points",
-                fontsize=8, color="#2563EB",
-                arrowprops=dict(arrowstyle="->", color="#2563EB", lw=1.0))
+    if has_obs:
+        ax.annotate(
+            f"Cutoff\n{loss_at_cutoff:.4f}",
+            xy=(cutoff_t, loss_at_cutoff),
+            xytext=(20, -40), textcoords="offset points",
+            fontsize=8, color="#6B7280",
+            arrowprops=dict(arrowstyle="->", color="#6B7280", lw=1.0))
+    
+    idx_80 = int(0.8 * (len(gt_t) - 1))
 
-    # annotate cutoff loss
-    ax.annotate(f"Cutoff\n{loss_at_cutoff:.3f}",
-                xy=(cutoff_flop, loss_at_cutoff),
-                xytext=(20, -30), textcoords="offset points",
-                fontsize=8, color="#6B7280",
-                arrowprops=dict(arrowstyle="->", color="#6B7280", lw=1.0))
+    ax.annotate(
+        f"Real Loss at 0.8\n{gt_loss_real[idx_80]:.4f}",
+        xy=(gt_t[idx_80], gt_loss_real[idx_80]),
+        xytext=(-80, 80),
+        textcoords="offset points",
+        fontsize=8,
+        color="#000000",
+        arrowprops=dict(arrowstyle="->", color="#000000", lw=1.0)
+    )
+    idx_80 = np.argmin(np.abs(t_pred - 0.8))
+    ax.annotate(
+        f"Pred Loss\n{median[idx_80]:.4f}",
+        xy=(t_pred[idx_80], median[idx_80]),
+        xytext=(-100, 50),
+        textcoords="offset points",
+        fontsize=8,
+        color="#2563EB",
+        arrowprops=dict(arrowstyle="->", color="#2563EB", lw=1.0)
+    )
 
-    # annotate true final
-    ax.annotate(f"True final\n{true_final:.4f}",
-                xy=(gt_flops[-1], true_final),
-                xytext=(-90, 20), textcoords="offset points",
-                fontsize=8.5, color="#2563EB", fontweight="bold",
-                arrowprops=dict(arrowstyle="->", color="#2563EB", lw=1.2))
+    ax.annotate(
+        f"True final\n{true_final:.4f}",
+        xy=(gt_t[-1], true_final),
+        xytext=(-30, 50), textcoords="offset points",
+        fontsize=8.5, color="#000000", fontweight="bold",
+        arrowprops=dict(arrowstyle="->", color="#000000", lw=1.2))
 
-    # annotate predicted final
-    ax.annotate(f"Pred final\n{pred_final:.4f}",
-                xy=(pred_flops[-1], pred_final),
-                xytext=(-90, -30), textcoords="offset points",
-                fontsize=8.5, color="#DC2626", fontweight="bold",
-                arrowprops=dict(arrowstyle="->", color="#DC2626", lw=1.2))
+    ax.annotate(
+        f"Pred final\n{pred_final:.4f}",
+        xy=(t_pred[-1], pred_final),
+        xytext=(-100, 50), textcoords="offset points",
+        fontsize=8.5, color="#2563EB", fontweight="bold",
+        arrowprops=dict(arrowstyle="->", color="#2563EB", lw=1.2))
 
-    # annotate CI at end
     ax.annotate("",
-                xy=(pred_flops[-1], q95[-1]),
-                xytext=(pred_flops[-1], q05[-1]),
-                arrowprops=dict(arrowstyle="<->", color="#DC2626",
+                xy=(t_pred[-1], float(q95[-1])),
+                xytext=(t_pred[-1], float(q05[-1])),
+                arrowprops=dict(arrowstyle="<->", color="#000000",
                                 lw=1.0, alpha=0.6))
-    ax.text(pred_flops[-1] * 1.001, (q05[-1] + q95[-1]) / 2,
+    ax.text(t_pred[-1] * 1.001,
+            (float(q05[-1]) + float(q95[-1])) / 2,
             f"CI\n{ci_width:.4f}", fontsize=7.5,
-            color="#DC2626", va="center")
+            color="#000000", va="center")
 
-    # ── axes formatting ───────────────────────────────────────
-    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x/1e15:.1f}P"))
-    ax.set_xlabel("Compute (FLOPs)", fontsize=11)
+    # ── axes ──────────────────────────────────────────────────
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.1f}"))
+    ax.set_xlim(0, 1.05)
+    ax.set_xlabel("Normalized Compute (FLOPs / total FLOPs)", fontsize=11)
     ax.set_ylabel("Validation Loss", fontsize=11)
     ax.set_title(
         f"IFBO Scaling Law Prediction  ·  "
         f"{base_N/1e6:.0f}M → {target_N/1e6:.0f}M params  ·  "
         f"shrink={shrink}  ·  tkpm={int(tkpm)}×  ·  "
-        f"obs={int(obs_frac*100)}%",
+        f"obs={int(obs_frac*100)}%"
+        + (f"  ·  {context_plotted} context curves" if context_plotted else ""),
         fontsize=12, fontweight="bold", pad=12
     )
     ax.legend(fontsize=9, loc="upper right",
@@ -179,36 +250,37 @@ for run_key, pred in predictions.items():
     # ── info panel ────────────────────────────────────────────
     sections = [
         ("MODEL SCALE", [
-            ("Base model",     f"{base_N/1e6:.2f}M params"),
-            ("Target model",   f"{target_N/1e6:.2f}M params"),
-            ("Scale factor",   f"{target_N/base_N:.1f}×"),
+            ("Base model",        f"{base_N/1e6:.2f}M params"),
+            ("Target model",      f"{target_N/1e6:.2f}M params"),
+            ("Scale factor",      f"{target_N/base_N:.1f}×"),
         ]),
         ("TRAINING CONFIG", [
-            ("Shrink factor",  str(shrink)),
-            ("Tokens / param", f"{int(tkpm)}×"),
-            ("Max LR",         str(max_lr)),
-            ("Total tokens",   f"{gt_tokens[-1]/1e9:.2f}B"),
-            ("Total FLOPs",    f"{gt_flops[-1]/1e15:.2f} PFLOPs"),
-            ("Checkpoints",    str(len(gt_loss))),
+            ("Shrink factor",     str(shrink)),
+            ("Tokens / param",    f"{int(tkpm)}×"),
+            ("Max LR",            str(max_lr)),
+            ("Total tokens",      f"{gt_tokens[-1]/1e9:.2f}B"),
+            ("Total FLOPs",       f"{gt_flops[-1]/1e15:.2f} PFLOPs"),
+            ("Checkpoints",       str(len(gt_loss_real))),
         ]),
         ("OBSERVATION", [
-            ("Obs fraction",   f"{int(obs_frac*100)}%"),
-            ("Obs FLOPs",      f"{obs_flops[-1]/1e15:.2f} PFLOPs"),
-            ("Obs checkpoints",f"{n_observe}"),
-            ("Loss at start",  f"{gt_loss[0]:.4f}"),
-            ("Loss at cutoff", f"{loss_at_cutoff:.4f}"),
-            ("Drop observed",  f"{loss_drop_obs:.4f} ({pct_drop_obs:.0f}%)"),
+            ("Obs fraction",      f"{int(obs_frac*100)}%"),
+            ("Obs FLOPs",         f"{gt_flops[obs_idx]/1e15:.2f} PFLOPs" if has_obs else "none"),
+            ("Obs checkpoints",   f"{n_observe}"),
+            ("Loss at start",     f"{gt_loss_real[0]:.4f}"),
+            ("Loss at cutoff",    f"{loss_at_cutoff:.4f}" if has_obs else "n/a"),
+            ("Drop observed",     f"{loss_drop_obs:.4f} ({pct_drop_obs:.0f}%)" if has_obs else "n/a"),
         ]),
         ("PREDICTION", [
-            ("True final loss",f"{true_final:.4f}"),
-            ("Pred final loss",f"{pred_final:.4f}"),
-            ("Abs error",      f"{abs_err:.4f}"),
-            ("Rel error",      f"{rel_err:.2f}%"),
-            ("90% CI width",   f"{ci_width:.4f}"),
-            ("CI q05",         f"{q05[-1]:.4f}"),
-            ("CI q95",         f"{q95[-1]:.4f}"),
-            ("True in CI",     "✓ yes" if true_in_ci else "✗ no"),
+            ("True final",        f"{true_final:.4f}"),
+            ("Pred final",        f"{pred_final:.4f}"),
+            ("Abs error",         f"{abs_err:.4f}"),
+            ("Rel error",         f"{rel_err:.2f}%"),
+            ("90% CI width",      f"{ci_width:.4f}"),
+            ("CI q05",            f"{float(q05[-1]):.4f}"),
+            ("CI q95",            f"{float(q95[-1]):.4f}"),
+            ("True in CI",        "✓ yes" if true_in_ci else "✗ no"),
         ]),
+        *([("CONTEXT", [("Context curves", f"{context_plotted}")])] if context_plotted else []),
     ]
 
     y = 0.97
@@ -219,10 +291,15 @@ for run_key, pred in predictions.items():
                     color="#374151", va="top")
         y -= 0.04
         for label, value in rows:
-            color = "#DC2626" if section_title == "PREDICTION" and "error" in label.lower() \
-                    else ("#16A34A" if true_in_ci and label == "True in CI" \
-                    else "#DC2626" if not true_in_ci and label == "True in CI" \
-                    else "#111827")
+            is_err     = section_title == "PREDICTION" and "error" in label.lower()
+            is_true_ci = label == "True in CI"
+            is_context = section_title == "CONTEXT"
+            color = (
+                "#DC2626" if is_err
+                else "#16A34A" if (is_true_ci and true_in_ci) or is_context
+                else "#DC2626" if is_true_ci and not true_in_ci
+                else "#111827"
+            )
             axinfo.text(0.05, y, f"{label}:",
                         transform=axinfo.transAxes,
                         fontsize=8, color="#6B7280", va="top")
@@ -231,14 +308,11 @@ for run_key, pred in predictions.items():
                         fontsize=8, color=color,
                         va="top", ha="right", fontweight="bold")
             y -= 0.038
-        y -= 0.02   # gap between sections
+        y -= 0.02
         axinfo.plot([0.02, 0.98], [y + 0.01, y + 0.01],
                     transform=axinfo.transAxes,
-                    color="#D1D5DB", linewidth=0.5,
-                    clip_on=False)
+                    color="#D1D5DB", linewidth=0.5, clip_on=False)
         y -= 0.01
-
-    plt.tight_layout()
 
     filename = (
         f"base{base_N/1e6:.0f}M"
@@ -252,5 +326,10 @@ for run_key, pred in predictions.items():
     )
     fname = os.path.join(OUTPUT_DIR, filename)
     plt.savefig(fname, dpi=150, bbox_inches="tight")
-    plt.show()
-    print(f"Saved → {fname}")
+    plt.close(fig)
+    print(f"  True final        : {true_final:.4f}")
+    print(f"  Pred final        : {pred_final:.4f}")
+    print(f"  Abs error         : {abs_err:.4f}")
+    print(f"  Rel error         : {rel_err:.2f}%")
+    print(f"  True in CI        : {'yes' if true_in_ci else 'no'}")
+    print(f"  Saved → {fname}\n")
