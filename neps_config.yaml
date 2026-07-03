@@ -1,13 +1,15 @@
 pipeline_space:
-  # scale_pair:
-  #   type: categorical
-  #   choices: ["[14562560, 134561280]", "[32270848, 134561280]", "[77124608, 610488320]"]
-  scale_pair: "[14562560, 32270848]" #base don't matter now
+  scale_pair:
+    type: categorical
+  #   # choices: ["[32270848, 610488320]", "[77124608, 610488320]", "[134561280, 610488320]", "[287183360, 610488320]"]
+  #   # choices: ["[32270848, 287183360]", "[77124608, 287183360]", "[134561280, 287183360]"]
+  #   choices: ["[32270848, 134561280]", "[77124608, 134561280]"]
+    choices: ["[134561280, 134561280]", "[287183360, 287183360]", "[610488320, 610488320]"] #base don't matter now
   # shrink: [0.1, 0.2, 0.4]
   # tkpm: [10.0, 20.0, 30.0]
   observe_fraction:
     type: categorical
-    choices: [0.0,0.2, 0.5, 0.8, 0.9]
+    choices: [0.2, 0.5, 0.9]
   # observe_fraction: 0.0
 
 optimizer: grid_search

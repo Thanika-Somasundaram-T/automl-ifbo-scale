@@ -92,7 +92,8 @@ def normalize_hyperparameters(row, df, clip=True):
         emb_norm = clip01(emb_norm)
 
     return torch.tensor(
-        [tkpm_norm,  emb_norm, shrink_norm, base_norm],
+        # [shrink_norm, tkpm_norm, emb_norm],
+        [tkpm_norm, emb_norm, shrink_norm, base_norm],
         dtype=torch.float32,
     )
     

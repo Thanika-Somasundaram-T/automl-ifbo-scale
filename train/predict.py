@@ -18,7 +18,7 @@ from utils import normalize_hyperparameters, normalize_log_loss_curve, subsample
 
 DATA_PATH = "./all_curves.json"
 
-SAVE_DIR = "./june/a1_predicting_32_feeding_only_610"
+SAVE_DIR = "./june/baseline"
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 # ============================================================
@@ -81,14 +81,13 @@ os.makedirs(SAVE_DIR, exist_ok=True)
 def build_base_context_curves(
     df,
     target_n,
+    context,
 ):
 
     curves = []
-    subset = df[(df["target_N"] == 610488320)]
+    subset = df[(df["target_N"] != target_n) & (df["target_N"] == context)]
 
     for _, row in subset.iterrows():
-        
-        print(f"  ✓ Processing run: {row['run_key']}")
 
         val_loss = np.asarray(
             row["val_loss"],
@@ -112,10 +111,6 @@ def build_base_context_curves(
         )
 
         t_raw = flops / (flops[-1] + 1e-8)
-
-        print(
-            f"  ✓ FLOPs time axis: {t_raw[0]} ... {t_raw[-1]}"
-        )
 
         t_sub, y_sub = subsample_curve(
             t_raw,
@@ -204,12 +199,6 @@ def build_partial_target_curve(
         df,
     )
 
-    print(
-        f"  ✓ target_N partial: "
-        f"{len(t_partial)}/{len(flops)} points "
-        f"({observe_fraction*100:.0f}% FLOPs)"
-    )
-
     return Curve(
         hyperparameters=hp,
         t=torch.tensor(
@@ -296,13 +285,14 @@ def predict(
     if isinstance(scale_pair, str):
         scale_pair = json.loads(scale_pair)
 
-    _, target_n = scale_pair
+    context, target_n = scale_pair
     context_curves = []
 
-    context_curves = build_base_context_curves(
-        df=df,
-        target_n=target_n,
-    )
+    # context_curves = build_base_context_curves(
+    #     df=df,
+    #     target_n=target_n,
+    #     context=context,
+    # )
 
     print(
         f"  Total context curves: {len(context_curves)}"
@@ -326,8 +316,7 @@ def predict(
     for _, row in target_subset.iterrows():
 
         print(
-            "testttttt      ",
-            row["run_key"],
+            f"\nProcessing target run: {row['target_N']}"
         )
         base_n, target_n = row["base_N"], row["target_N"]
 
@@ -374,18 +363,13 @@ def predict(
 
         final_pred = median[-1]
 
-        print(
-            f"  → Predicted final val loss: {final_pred:.4f}"
-        )
-
-        print(
-            f"  → 90% CI: [{q05[-1]:.4f}, {q95[-1]:.4f}]"
-        )
-
         config_key = make_config_key(row)
 
+        context_dir = os.path.join(SAVE_DIR, f"{context}")
+        os.makedirs(context_dir, exist_ok=True)
+
         out_file = os.path.join(
-            SAVE_DIR,
+            context_dir,
             f"target{target_n}_obs{int(observe_fraction*100)}.json"
         )
 
