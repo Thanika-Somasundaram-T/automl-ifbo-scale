@@ -19,6 +19,10 @@ venv/
 /by_loss*
 /ablation*
 /june*
+/ablation*
+/june*
+/ifbo*
+/by_loss*
 
 # Model checkpoints
 *.pt
