@@ -2,7 +2,7 @@ import os
 import json
 import torch
 from models.mlp import MLP4
-from utils import fixed_range_normalize, get_device, normalize_hyperparameters, min_max_normalize
+from utils import fixed_normalize, get_device, normalize_hyperparameters, min_max_normalize, normalize_log_loss_curve
 from ifbo.surrogate import FTPFN
 from ifbo import Curve
 
@@ -11,35 +11,16 @@ selected_context_curves = [
     (64,),
     (64, 32),
     (64, 32, 24),
-    (64, 32, 24, 16),
-    (64, 32, 24, 16, 8),
-    (64, 32, 24, 16, 8, 4),
     (32,),
     (24,),
-    (16,),
-    (8,),
-    (4,),
-    (64, 24),
-    (64, 16),
-    (64, 8),
-    (64, 4),
-    (32, 24, 16, 8, 4),
-    (24, 16, 8, 4),
-    (16, 8, 4),
-    (8, 4),
-    (64, 24, 16, 8, 4),
-    (64, 32, 16, 8, 4),
-    (64, 32, 24, 8, 4),
-    (64, 32, 24, 16, 4),
-    (64, 8, 4),
-    (32, 24, 16),
+    (32, 24),
 ]
 
 
 def predict(
     lr: float = 1e-3,
     num_layers: int = 4,
-    hidden_dim: int = 128,
+    hidden_dim: int = 64,
     weight_decay: float = 0.0,
     lr_schedule: str = "none",
     epochs: int = 15,
@@ -48,7 +29,7 @@ def predict(
     use_context: bool = True,
     trial_id=None,
     log_dir: str = "./runs_ifbo",
-    save_dir: str = "./results",
+    save_dir: str = "./ifbo_pred_fixed",
 ):
     device = get_device()
     model = MLP4(hidden_dim=hidden_dim).to(device)
@@ -57,13 +38,13 @@ def predict(
     # Load low-scale context curves (e.g., HD=64)
     # -------------------------
 
-    json_path = os.path.join(save_dir, "results_metrics.json")
+    json_path = os.path.join("./results", "results_metrics.json")
     print("for hd: ", hidden_dim)
     if os.path.exists(json_path):
         with open(json_path, "r") as f:
             all_results = json.load(f)
 
-        target_epochs = 150
+        target_epochs = 100
         
         if context_id < 0 or context_id >= len(selected_context_curves):
             raise ValueError(f"Invalid context_id {context_id}")
@@ -82,7 +63,7 @@ def predict(
             if run_data.get("lr") != lr or run_data.get("weight_decay") != weight_decay:
                 continue
 
-            curve_values = run_data.get("val_acc_curve", [])
+            curve_values = run_data.get("val_loss_curve", [])
             if len(curve_values) == 0:
                 continue
             hp = normalize_hyperparameters(
@@ -93,11 +74,11 @@ def predict(
 
             t = torch.linspace(
                 0.0, 
-                float(len(curve_values)) / float(target_epochs), 
-                steps=len(curve_values)
+                float(100) / float(target_epochs), 
+                steps=100
             )
 
-            y_norm = fixed_range_normalize(curve_values)  # normalization for prediction only
+            y_norm = fixed_normalize(curve_values)  # normalization for prediction only
         
             print(run_data["hidden_dim"],"added to context")
 
@@ -121,7 +102,7 @@ def predict(
 
             print(run_data.get("hidden_dim"), "partial added as context")
                 
-            curve_values = run_data.get("val_acc_curve", [])[:epochs]
+            curve_values = run_data.get("val_loss_curve", [])[:epochs]
                 
             if len(curve_values) == 0:
                 continue
@@ -138,7 +119,7 @@ def predict(
                 steps=len(curve_values)
             )
             
-            y_norm = fixed_range_normalize(curve_values)
+            y_norm = fixed_normalize(curve_values)
 
             context_curves.append(
                 Curve(
@@ -178,10 +159,10 @@ def predict(
         # Save prediction only (no y_norm or raw_y)
         # -------------------------
         pred_json_path = os.path.join(
-            save_dir, 
-            f"ifbo_pred_[{subset_name}]_ep{epochs}.json"
+            save_dir,
+            f"{hidden_dim}/{subset_name}/ep{epochs}.json"
         )
-
+        os.makedirs(os.path.dirname(pred_json_path), exist_ok=True)
 
         if os.path.exists(pred_json_path):
             with open(pred_json_path, "r") as f:

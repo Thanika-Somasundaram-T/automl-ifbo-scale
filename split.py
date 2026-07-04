@@ -68,7 +68,7 @@ for hidden_dim in HIDDEN_DIMS:
     )
 
     output_path = os.path.join(
-        output_dir, f"results_hd{hidden_dim}.json"
+        output_dir, f"hd{hidden_dim}.json"
     )
 
     with open(output_path, "w") as f:

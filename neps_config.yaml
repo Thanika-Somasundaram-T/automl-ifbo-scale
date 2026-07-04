@@ -1,8 +1,16 @@
 pipeline_space:
   # Learning rates: pick 5 values logarithmically spaced
+  # lr:
+  #   type: categorical
+  #   choices: [1e-2, 1e-3, 1e-4, 3e-4]
+
   lr:
     type: categorical
-    choices: [1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3]
+    choices: [0.00003, 0.0001, 0.00001, 0.003]
+
+  weight_decay:
+    type: categorical
+    choices: [0.0, 0.01]
 
   # Number of layers fixed
   num_layers: 4
@@ -11,22 +19,22 @@ pipeline_space:
   hidden_dim: 128
 
   # Weight decay: 2 choices
-  weight_decay:
-    type: categorical
-    choices: [0.0, 0.01]
+  # weight_decay:
+  #   type: categorical
+  #   choices: [0.0, 0.001, 0.0001]
 
   # Learning rate schedule
   lr_schedule: "cosine"
 
   # Training parameters
-  epochs: 
+  epochs:
     type: categorical
-    choices: [0, 5, 10, 20]
+    choices: [0, 20, 50, 90]
 
   # Different subsets of context curves
   context_id:
     type: categorical
-    choices: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24]
+    choices: [0,1,2,3,4,5]
 
   use_context: True
   batch_size: 96

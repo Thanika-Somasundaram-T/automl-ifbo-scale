@@ -53,19 +53,19 @@ def normalize_hyperparameters(lr, hidden_dim, weight_decay):
 
     lr_norm = (
         math.log10(lr) - math.log10(lr_min)
-    ) / (math.log10(lr_max) - math.log10(lr_min))
+    ) / (math.log10(lr_max) - math.log10(lr_min) + 1e-8)
 
     hidden_norm = (
         math.log2(hidden_dim) - math.log2(hidden_min)
-    ) / (math.log2(hidden_max) - math.log2(hidden_min))
+    ) / (math.log2(hidden_max) - math.log2(hidden_min) + 1e-8)
 
-    weight_decay_norm = (weight_decay - wd_min) / (wd_max - wd_min)
+    weight_decay_norm = (weight_decay - wd_min) / (wd_max - wd_min + 1e-8)
     # layer_norm = (num_layer - layer_min) / (layer_max - layer_min)  # BUG FIX
 
     return torch.tensor(
         [lr_norm, hidden_norm, weight_decay_norm],
         dtype=torch.float32,
-    ).clamp(0.0, 1.0)
+    )
 
 def parse_key(key):
     """
@@ -165,3 +165,109 @@ def fixed_range_normalize(y, y_min=0.0, y_max=1.0):
     y = np.array(y, dtype=float)
     y_clipped = np.clip(y, y_min, y_max)
     return (y_clipped - y_min) / (y_max - y_min)
+
+
+import numpy as np
+
+
+
+import re
+import json
+import numpy as np
+
+def compute_min_max(hidden_dim_min, hidden_dim_max, buffer=0.05,
+                     path="./results/results_metrics.json", min_value=1e-8):
+    with open(path) as f:
+        results = json.load(f)
+
+    selected_losses = []
+    for key, entry in results.items():
+        match = re.search(r"_hd(\d+)_", key)
+        if match is None:
+            continue
+        hd = int(match.group(1))
+        if hidden_dim_min <= hd <= hidden_dim_max:
+            curve = entry.get("val_loss_curve", [])
+            if curve:
+                selected_losses.append(np.asarray(curve))
+
+    if not selected_losses:
+        raise ValueError(
+            f"No runs found with hidden_dim in [{hidden_dim_min}, {hidden_dim_max}]"
+        )
+
+    all_losses = np.concatenate(selected_losses)
+    log_others = np.log(np.clip(all_losses, 1e-8, None))
+    lo = float(log_others.min())
+    hi = float(log_others.max())
+    margin = (hi - lo) * buffer
+
+    lo_adj = max(lo - margin, np.log(min_value))
+    hi_adj = hi + margin
+    if hi_adj <= lo_adj:
+        hi_adj = lo_adj + 1e-6
+
+    return lo_adj, hi_adj  # log-space, matches log_curve's units
+
+def normalize_log_loss_curve(val_loss,eps=1e-8):
+    """
+    Converts validation loss into an IfBO-compatible score in [0,1]
+    where higher = better (like accuracy).
+    """
+
+    # Convert to numpy
+    val_loss = np.asarray(val_loss, dtype=np.float64)
+
+    # Log-transform (stabilizes scale if losses vary a lot)
+    log_curve = np.log(val_loss + eps)
+
+    # Get reference range (from dataset / prior evaluations)
+    log_min, log_max = compute_min_max(4, 128)
+
+    print("log range:", log_min, log_max)
+
+    # Handle degenerate case
+    if abs(log_max - log_min) < 1e-12:
+        return np.ones_like(log_curve)
+
+    # Min-max normalize (loss space: 0=good, 1=bad)
+    norm = (log_curve - log_min) / (log_max - log_min)
+
+    # Clip to valid range
+    norm = np.clip(norm, 0.0, 1.0)
+
+    # Invert → convert to "accuracy-like" score
+    score = 1.0 - norm
+
+    return score
+
+def fixed_normalize(val_loss,eps=1e-8):
+    """
+    Converts validation loss into an IfBO-compatible score in [0,1]
+    where higher = better (like accuracy).
+    """
+
+    # Convert to numpy
+    val_loss = np.asarray(val_loss, dtype=np.float64)
+
+    # Log-transform (stabilizes scale if losses vary a lot)
+    log_curve = np.log(val_loss + eps)
+
+    # Get reference range (from dataset / prior evaluations)
+    log_min, log_max = min(log_curve), max(log_curve)
+    print("log range:", log_min, log_max)
+
+    # Handle degenerate case
+    if abs(log_max - log_min) < 1e-12:
+        return np.ones_like(log_curve)
+
+    # Min-max normalize (loss space: 0=good, 1=bad)
+    norm = (log_curve - log_min) / (log_max - log_min)
+
+    # Clip to valid range
+    norm = np.clip(norm, 0.0, 1.0)
+
+    # Invert → convert to "accuracy-like" score
+    score = 1.0 - norm
+
+    return score

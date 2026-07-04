@@ -16,6 +16,9 @@ venv/
 /data/
 /rank*
 /plots*
+/ablation*
+/june*
+/ifbo*
 /by_loss*
 
 # Model checkpoints
