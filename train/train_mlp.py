@@ -35,8 +35,8 @@ def train_mlp(
     epochs: int = 50,
     batch_size: int = 128,
     trial_id: Optional[str] = None,
-    log_dir: str = "./runs",
-    save_dir: str = "./results",
+    log_dir: str = "./mlp_runs",
+    save_dir: str = "./ground_truth",
     lr_schedule: str = "none",  # Options: none, warmup, cosine, cooldown, warmup_cooldown
 ) -> float:
     """
@@ -127,7 +127,7 @@ def train_mlp(
     # TensorBoard logging
     # ----------------------------
     time_tag = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_name = f"MLP_layers{num_layers}_lr{lr:.0e}_hd{hidden_dim}_wd{weight_decay}_{lr_schedule}_{time_tag}"
+    run_name = f"lr{lr:.0e}_hd{hidden_dim}_wd{weight_decay}_{time_tag}"
     writer = SummaryWriter(log_dir=os.path.join(log_dir, run_name))
 
     # ----------------------------

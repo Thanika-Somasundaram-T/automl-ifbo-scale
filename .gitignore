@@ -20,6 +20,8 @@ venv/
 /june*
 /ifbo*
 /by_loss*
+/ground_truth*
+/mlp_runs*
 
 # Model checkpoints
 *.pt
