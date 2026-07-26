@@ -29,7 +29,7 @@ import sys
 import json
 import matplotlib.pyplot as plt
 
-DEFAULT_JSON_PATH = "./results/results_hd128.json"
+DEFAULT_JSON_PATH = "./results_***/results_hd128.json"
 
 
 def load_results(path):
@@ -48,6 +48,8 @@ def make_label(run_name, cfg):
 def main():
     json_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_JSON_PATH
     data = load_results(json_path)
+    
+    fig, ax = plt.subplots(figsize=(10, 5.5))
 
     # Only keep runs that actually have a val_loss_curve to plot.
     runs = []
@@ -62,13 +64,11 @@ def main():
         print("Nothing to plot -- no runs with a val_loss_curve were found.")
         sys.exit(1)
 
-    plt.figure(figsize=(10, 7))
-
     colors = plt.colormaps["tab20"].resampled(len(runs))
 
     for i, (run_name, cfg, val_curve) in enumerate(runs):
         epochs = range(1, len(val_curve) + 1)
-        plt.plot(
+        ax.plot(
             epochs,
             val_curve,
             color=colors(i),
@@ -76,17 +76,27 @@ def main():
             linewidth=1.8,
         )
 
-    plt.xlabel("Epoch")
-    plt.ylabel("Validation Loss")
-    plt.ylim(0, 0.8)
-    plt.title("Validation Loss — All Runs")
-    plt.legend(fontsize=8, loc="upper right", ncol=1 if len(runs) <= 15 else 2)
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
+    ax.xlabel("Epoch")
+    ax.ylabel("Validation Loss")
+    ax.ylim(0.2, 1.0)
+    # plt.title("Validation Loss — All Runs")
+    # plt.legend(fontsize=8, loc="upper right", ncol=1 if len(runs) <= 15 else 2)
+    ax.grid(alpha=0.25)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
 
     out_path = "val_loss_comparison.png"
-    plt.savefig(out_path, dpi=150)
-    print(f"Saved plot to {out_path}")
+    
+    
+    fig.tight_layout()
+    fig.savefig(
+        out_path,
+        dpi=600,              # ignored for SVG but harmless
+        bbox_inches="tight",
+        pad_inches=0.02,
+    )
+
 
     plt.show()
 

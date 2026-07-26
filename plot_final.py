@@ -30,9 +30,9 @@ from utils import compute_min_max
 # ── CONFIG ───────────────────────────────────────────────────────
 IFBO_ROOT = "ifbo_pred"
 GT_PATH = "results/results_metrics.json"
-OUTPUT_DIR = "ifbo_plots_combined_no_uncertainty"
+OUTPUT_DIR = "ifbo_plots_combined"
 
-NORM_HD_MIN = 32
+NORM_HD_MIN = 4
 NORM_HD_MAX = 128
 NORM_BUFFER = 0.05
 NORM_MIN_VALUE = 1e-8
@@ -44,11 +44,11 @@ RUN_KEY_RE = re.compile(
 )
 
 TARGETS = [
-    {"lr": 0.00003, "wd": 0.0,  "color": "red",     "label": "lr=3e-5, wd=0.0"},
-    {"lr": 0.0001,  "wd": 0.0,  "color": "blue",    "label": "lr=1e-4, wd=0.0"},
-    {"lr": 0.00003, "wd": 0.01, "color": "green",   "label": "lr=3e-5, wd=0.01"},
+    # {"lr": 0.00003, "wd": 0.0,  "color": "red",     "label": "lr=3e-5, wd=0.0"},
+    # {"lr": 0.0001,  "wd": 0.0,  "color": "blue",    "label": "lr=1e-4, wd=0.0"},
+    {"lr": 0.00003, "wd": 0.01, "color": "red",   "label": "lr=3e-5, wd=0.01"},
     {"lr": 0.00001, "wd": 0.0,  "color": "skyblue", "label": "lr=1e-5, wd=0.0"},
-    {"lr": 0.003,   "wd": 0.0,  "color": "brown",   "label": "lr=3e-3, wd=0.0"},
+    # {"lr": 0.003,   "wd": 0.0,  "color": "brown",   "label": "lr=3e-3, wd=0.0"},
 ]
 
 
@@ -213,14 +213,14 @@ def main():
 
         ax.set_title(f"IFBO predictions vs GT — hd={hd_dir}, ctx={context_dir}, ep{obs_pct}")
         ax.set_xlabel("Normalized epoch")
-        ax.set_ylim(bottom=0.0, top=1.0)
+        ax.set_ylim(bottom=0.2, top=0.9)
         ax.set_ylabel("Validation loss")
         ax.grid(alpha=0.25)
 
         # de-duplicate legend, keep GT/Pred grouped per target
         handles, labels = ax.get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
-        ax.legend(by_label.values(), by_label.keys(), fontsize=8, ncol=2, loc="best")
+        # ax.legend(by_label.values(), by_label.keys(), fontsize=8, ncol=2, loc="best")
 
         plt.tight_layout()
         save_path = os.path.join(out_dir, f"combined_ep{obs_pct}.png")

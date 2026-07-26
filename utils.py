@@ -123,50 +123,6 @@ def get_fashion_mnist_loaders(batch_size=128, normalise=True):
 
     return train_loader, test_loader
 
-def min_max_normalize(y):
-    """
-    Normalize values using per-array min-max scaling.
-
-    Args:
-        y : list or torch.Tensor
-            Input values to normalize.
-
-    Returns:
-        torch.Tensor
-            Min-max normalized values.
-    """
-    if isinstance(y, list):
-        y = torch.tensor(y, dtype=torch.float32)
-
-    y_min = y.min()
-    y_max = y.max()
-
-    if y_max == y_min:
-        return torch.zeros_like(y)
-
-    return (y - y_min) / (y_max - y_min)
-
-def fixed_range_normalize(y, y_min=0.0, y_max=1.0):
-    """
-    Normalize values to [0, 1] using a fixed range.
-
-    Args:
-        y : array-like
-            Input values to normalize.
-        y_min : float, optional
-            Minimum value of the fixed range.
-        y_max : float, optional
-            Maximum value of the fixed range.
-
-    Returns:
-        np.ndarray
-            Normalized values clipped to [0, 1].
-    """
-    y = np.array(y, dtype=float)
-    y_clipped = np.clip(y, y_min, y_max)
-    return (y_clipped - y_min) / (y_max - y_min)
-
-
 import numpy as np
 
 
@@ -176,7 +132,7 @@ import json
 import numpy as np
 
 def compute_min_max(hidden_dim_min, hidden_dim_max, buffer=0.05,
-                     path="./results/results_metrics.json", min_value=1e-8):
+                     path="./results_***/results_metrics.json", min_value=1e-8):
     with open(path) as f:
         results = json.load(f)
 
@@ -224,7 +180,7 @@ def normalize_log_loss_curve(val_loss,eps=1e-8):
     # Get reference range (from dataset / prior evaluations)
     log_min, log_max = compute_min_max(4, 128)
 
-    print("log range:", log_min, log_max)
+    # print("log range:", log_min, log_max)
 
     # Handle degenerate case
     if abs(log_max - log_min) < 1e-12:
@@ -241,33 +197,52 @@ def normalize_log_loss_curve(val_loss,eps=1e-8):
 
     return score
 
-def fixed_normalize(val_loss,eps=1e-8):
+
+def subsample_curve(t, y, n_total=10):
+    t = np.array(t)
+    y = np.array(y)
+
+    if len(t) <= n_total:
+        return t, y
+
+    # uniformly spaced indices across the full curve
+    idx = np.linspace(0, len(t) - 1, n_total)
+    idx = np.round(idx).astype(int)
+
+    # ensure uniqueness (just in case of rounding collisions)
+    idx = np.unique(idx)
+
+
+    return t[idx], y[idx]
+
+
+# Alias: makes the "uniform" subsampling policy explicit alongside
+# subsample_curve_geometric below.
+subsample_curve_uniform = subsample_curve
+
+
+def subsample_curve_geometric(t, y, n_total=10):
     """
-    Converts validation loss into an IfBO-compatible score in [0,1]
-    where higher = better (like accuracy).
+    Geometrically spaced indices: denser near the start of the curve,
+    sparser later. Used by the "geometric" diverse_lower_k policy variant,
+    since early training epochs carry most of the loss-curve shape.
     """
+    t = np.array(t)
+    y = np.array(y)
 
-    # Convert to numpy
-    val_loss = np.asarray(val_loss, dtype=np.float64)
+    if len(t) <= n_total:
+        return t, y
 
-    # Log-transform (stabilizes scale if losses vary a lot)
-    log_curve = np.log(val_loss + eps)
+    # geomspace needs a positive start; index 0 is included explicitly.
+    idx = np.geomspace(1, len(t), n_total) - 1
+    idx = np.round(idx).astype(int)
+    idx = np.unique(idx)
 
-    # Get reference range (from dataset / prior evaluations)
-    log_min, log_max = min(log_curve), max(log_curve)
-    print("log range:", log_min, log_max)
+    return t[idx], y[idx]
 
-    # Handle degenerate case
-    if abs(log_max - log_min) < 1e-12:
-        return np.ones_like(log_curve)
 
-    # Min-max normalize (loss space: 0=good, 1=bad)
-    norm = (log_curve - log_min) / (log_max - log_min)
-
-    # Clip to valid range
-    norm = np.clip(norm, 0.0, 1.0)
-
-    # Invert → convert to "accuracy-like" score
-    score = 1.0 - norm
-
-    return score
+def hp_euclidean_distance(hp_a, hp_b):
+    """Euclidean distance between two normalized hyperparameter vectors."""
+    a = hp_a.numpy() if torch.is_tensor(hp_a) else np.asarray(hp_a)
+    b = hp_b.numpy() if torch.is_tensor(hp_b) else np.asarray(hp_b)
+    return float(np.linalg.norm(a - b))

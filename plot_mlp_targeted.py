@@ -32,16 +32,16 @@ import matplotlib.pyplot as plt
 # ---- Configure the (lr, weight_decay, color, label) combos you want plotted ----
 # Edit this list to match whatever runs you care about.
 TARGETS = [
-    # {"lr": 0.00003,    "wd": 0.0, "color": "red",    "label": "lr=0.00003, wd=0.0"},
-    # {"lr": 0.0001,   "wd": 0.0,    "color": "blue",  "label": "lr=0.0001, wd=0.0"},
-    # {"lr": 0.00003,   "wd": 0.01, "color": "green",   "label": "lr=0.00003, wd=0.01"},
-    {"lr": 0.00001,  "wd": 0.0,  "color": "skyblue",  "label": "lr=0.00001, wd=0.0"},
-    # {"lr": 0.003,  "wd": 0.0,    "color": "brown",   "label": "lr=0.003, wd=0.0"},
+    {"lr": 0.00003,    "wd": 0.0, "color": "skyblue",    "label": "lr=0.00003, wd=0.0"},
+    {"lr": 0.0001,   "wd": 0.0,    "color": "blue",  "label": "lr=0.0001, wd=0.0"},
+    {"lr": 0.00003,   "wd": 0.01, "color": "green",   "label": "lr=0.00003, wd=0.01"},
+    {"lr": 0.00001,  "wd": 0.0,  "color": "red",  "label": "lr=0.00001, wd=0.0"},
+    {"lr": 0.003,  "wd": 0.0,    "color": "brown",   "label": "lr=0.003, wd=0.0"},
 ]
 
 REL_TOL = 1e-6  # tolerance for float matching lr / weight_decay
 
-DEFAULT_JSON_PATH = "./results/results_metrics.json"
+DEFAULT_JSON_PATH = "./results_***/results_metrics.json"
 
 
 def close(a, b, tol=REL_TOL):
@@ -70,7 +70,7 @@ def main():
     json_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_JSON_PATH
     data = load_results(json_path)
 
-    plt.figure(figsize=(9, 6))
+    fig, ax = plt.subplots(figsize=(10, 5.5))
 
     plotted_any = False
     for target in TARGETS:
@@ -92,17 +92,17 @@ def main():
                 print(f"[warning] run '{run_name}' has an empty val_loss_curve, skipping.")
                 continue
 
-            epochs = range(1, 100 + 1)  # Assuming 100 epochs; adjust if needed
+            epochs = range(1, 101)
             label = target["label"]
             if len(matches) > 1:
                 label = f"{label} ({run_name})"
 
-            plt.plot(
+            ax.plot(
                 epochs,
                 val_curve[:100],
                 color=target["color"],
+                linewidth=1.6,      # same as first script
                 label=label,
-                linewidth=2,
             )
             plotted_any = True
 
@@ -110,21 +110,32 @@ def main():
         print("Nothing was plotted -- check that your JSON contains the requested configs.")
         sys.exit(1)
 
-    plt.xlabel("Epoch")
-    plt.ylabel("Validation Loss")
-    # plt.ylim(0, 1)
-    # plt.yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
-    plt.title("Validation Loss by Config")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("Validation Loss")
+    ax.set_ylim(0.2, 1.0)
 
-    out_path = "rank.png"
-    plt.savefig(out_path, dpi=150)
+    # Match styling of first script
+    ax.grid(alpha=0.25)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # Uncomment if desired
+    # ax.legend(frameon=False, fontsize=9, loc="best")
+
+    out_path = "ranking.svg"
+
+    fig.tight_layout()
+    fig.savefig(
+        out_path,
+        dpi=600,              # ignored for SVG but harmless
+        bbox_inches="tight",
+        pad_inches=0.02,
+    )
+
     print(f"Saved plot to {out_path}")
 
     plt.show()
-
-
+    
+    
 if __name__ == "__main__":
     main()

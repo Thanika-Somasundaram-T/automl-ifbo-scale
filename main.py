@@ -1,30 +1,33 @@
+import torch
+import argparse
 import yaml
+from pipeline import neps_wrapper
 import neps
-from train.train_mlp import train_mlp
 
-
-def evaluate_pipeline(trial_id=None, **config):
-    return train_mlp(trial_id=trial_id, **config)
-
-
-def main():
-
-    pipeline_space = {
-        "lr": neps.HPOCategorical(choices=[3e-3, 1e-3, 3e-4, 1e-4]),
-        "weight_decay": neps.HPOCategorical(choices=[0.0, 1e-3]),
-        "hidden_dim": neps.HPOCategorical(choices=[24, 32, 64, 128, 256]),
-        "epochs": neps.HPOConstant(value=100),
-        "num_layers": neps.HPOConstant(value=4),
-        "lr_schedule": neps.HPOConstant(value="none"),
-        "batch_size": neps.HPOConstant(value=64),
-    }
-
-    neps.run(
-        evaluate_pipeline=evaluate_pipeline,
-        pipeline_space=pipeline_space,
-        optimizer='grid_search',
+def parsey():
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument(
+        "--num_layers", type=int,
+        default=2,
+        choices=[2, 4],
+        help="Number of layers for the MLP (2 or 4)"
     )
+    return parser.parse_args()
 
+def main(num_layers):
+    with open("./neps_config.yaml", "r") as f:
+        neps_config = yaml.safe_load(f)
+        
+    neps_config["evaluate_pipeline"] = neps_wrapper()
+    # neps_config["num_layers"] = num_layers
+    
+    neps.run(**neps_config)
+    
+
+    
+    
 
 if __name__ == "__main__":
-    main()
+    args = parsey()
+    main(num_layers=args.num_layers)

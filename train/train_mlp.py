@@ -35,8 +35,8 @@ def train_mlp(
     epochs: int = 50,
     batch_size: int = 128,
     trial_id: Optional[str] = None,
-    log_dir: str = "./mlp_runs",
-    save_dir: str = "./ground_truth",
+    log_dir: str = "./runs",
+    save_dir: str = "./results",
     lr_schedule: str = "none",  # Options: none, warmup, cosine, cooldown, warmup_cooldown
 ) -> float:
     """

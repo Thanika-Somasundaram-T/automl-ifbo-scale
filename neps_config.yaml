@@ -1,1 +1,45 @@
+pipeline_space:
+  # Learning rates: pick 5 values logarithmically spaced
+  lr:
+    type: categorical
+    choices: [1e-3, 1e-4, 3e-4, 3e-5, 3e-3, 1e-05]
+
+  # lr:
+  #   type: categorical
+  #   choices: [0.00003, 0.0001, 0.00001, 0.003]
+
+  weight_decay:
+    type: categorical
+    choices: [0.0, 0.01]
+
+  # Number of layers fixed
+  num_layers: 4
+
+  # Hidden dimensions
+  hidden_dim: 128
+
+  # Weight decay: 2 choices
+  # weight_decay:
+  #   type: categorical
+  #   choices: [0.0, 0.001, 0.0001]
+
+  # Learning rate schedule
+  lr_schedule: "cosine"
+
+  # Training parameters
+  epochs:
+    type: categorical
+    choices: [0, 20, 50, 90]
+
+  # Different subsets of context curves
+  context_id:
+    type: categorical
+    choices: [0,1,2,3,4,5]
+
+  use_context: True
+  batch_size: 96
+
 optimizer: grid_search
+
+# Maximum number of total evaluations (all combinations)
+# max_evaluations_total: 70
